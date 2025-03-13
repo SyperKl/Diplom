@@ -39,3 +39,32 @@
 cd Cmodiploma
 npm install
 npm run dev
+```
+### Backend
+```bash
+cd server
+npm install
+npm run dev
+```
+### Структура проекта
+```bash
+Cmodiploma/
+├── src/
+│   ├── components/     # Vue компоненты
+│   ├── views/          # Страницы приложения
+│   ├── stores/         # Хранилище состояния
+│   └── router/         # Маршрутизация
+├── server/
+│   ├── models/         # Модели данных
+│   ├── routes/         # API маршруты
+│   └── config/         # Конфигурация
+```
+## Лицензия MIT
+Этот README.md содержит:
+1. Описание проекта
+2. Основные функции
+3. Используемые технологии
+4. Инструкции по установке
+5. Структуру проекта
+
+
