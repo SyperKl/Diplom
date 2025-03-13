@@ -164,28 +164,43 @@ export const useQueueStore = defineStore('queue', {
         },
         
         addChartDataPoint() {
-            // Простая защита от переполнения истории
-            if (this.history.timestamps.length >= 1000) {
-                console.warn('History limit reached, stopping updates');
-                this.stopChartUpdates();
-                return;
-            }
-            
-            const timestamp = new Date().toISOString();
-            
-            // Безопасное копирование текущих значений
-            const queueLength = Number(this.statistics.queueLength);
-            const serverUtilization = Number(this.statistics.serverUtilization);
-            
-            this.history.queueLength.push(queueLength);
-            this.history.serverUtilization.push(serverUtilization);
-            this.history.timestamps.push(timestamp);
+            try {
+                console.log('Store: Adding chart data point');
+                
+                // Защита от переполнения истории
+                if (this.history.timestamps.length >= 1000) {
+                    console.warn('History limit reached');
+                    return false;
+                }
+                
+                const timestamp = new Date().toISOString();
+                
+                // Безопасное копирование текущих значений
+                const queueLength = Number(this.statistics.queueLength);
+                const serverUtilization = Number(this.statistics.serverUtilization);
+                
+                // Добавляем данные в историю
+                this.history.queueLength.push(queueLength);
+                this.history.serverUtilization.push(serverUtilization);
+                this.history.timestamps.push(timestamp);
 
-            // Ограничиваем историю до 100 точек
-            if (this.history.timestamps.length > 100) {
-                this.history.queueLength.shift();
-                this.history.serverUtilization.shift();
-                this.history.timestamps.shift();
+                // Ограничиваем историю до 50 точек
+                if (this.history.timestamps.length > 50) {
+                    this.history.queueLength.shift();
+                    this.history.serverUtilization.shift();
+                    this.history.timestamps.shift();
+                }
+                
+                console.log('Chart data added:', {
+                    time: new Date(timestamp).toLocaleTimeString(),
+                    load: (serverUtilization * 100).toFixed(1) + '%',
+                    queue: queueLength
+                });
+                
+                return true;
+            } catch (error) {
+                console.error('Error adding chart data point:', error);
+                return false;
             }
         },
 
