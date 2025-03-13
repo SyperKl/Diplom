@@ -31,7 +31,7 @@ export const useQueueStore = defineStore('queue', {
         },
         
         // Таймер для обновления графиков
-        chartUpdateTimer: null
+        chartUpdateInterval: null
     }),
 
     actions: {
@@ -41,11 +41,8 @@ export const useQueueStore = defineStore('queue', {
             this.queue = [];
             this.resetStatistics();
             
-            // Останавливаем таймер обновления графиков, если он был запущен
-            if (this.chartUpdateTimer) {
-                clearInterval(this.chartUpdateTimer);
-                this.chartUpdateTimer = null;
-            }
+            // Останавливаем интервал обновления графиков, если он был запущен
+            this.stopChartUpdates();
         },
 
         resetStatistics() {
@@ -66,90 +63,122 @@ export const useQueueStore = defineStore('queue', {
         },
 
         addCustomer() {
-            console.log('Store: Adding customer');
-            this.statistics.totalCustomers++;
-            const freeServer = this.serverStatus.indexOf(false);
+            try {
+                console.log('Store: Adding customer');
+                this.statistics.totalCustomers++;
+                const freeServer = this.serverStatus.indexOf(false);
 
-            if (freeServer !== -1) {
-                console.log('Store: Found free server:', freeServer);
-                this.serverStatus[freeServer] = true;
-                this.statistics.servedCustomers++;
-                return true;
-            } else if (this.queue.length < this.maxQueueLength) {
-                console.log('Store: Adding to queue, current length:', this.queue.length);
-                this.queue.push({
-                    arrivalTime: Date.now()
-                });
-                return true;
-            } else {
-                console.log('Store: Customer rejected');
-                this.statistics.rejectedCustomers++;
+                if (freeServer !== -1) {
+                    console.log('Store: Found free server:', freeServer);
+                    this.serverStatus[freeServer] = true;
+                    this.statistics.servedCustomers++;
+                    this._calculateStats();
+                    return true;
+                } else if (this.queue.length < this.maxQueueLength) {
+                    console.log('Store: Adding to queue, current length:', this.queue.length);
+                    this.queue.push({
+                        arrivalTime: Date.now()
+                    });
+                    this._calculateStats();
+                    return true;
+                } else {
+                    console.log('Store: Customer rejected');
+                    this.statistics.rejectedCustomers++;
+                    this._calculateStats();
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error in addCustomer:', error);
                 return false;
             }
         },
 
         processServer() {
-            console.log('Store: Processing servers');
-            const busyServer = this.serverStatus.indexOf(true);
-            if (busyServer !== -1) {
+            try {
+                console.log('Store: Processing servers');
+                const busyServerIndex = this.serverStatus.indexOf(true);
+                
+                if (busyServerIndex === -1) {
+                    return; // Нет занятых серверов
+                }
+                
                 if (this.queue.length > 0) {
                     console.log('Store: Processing customer from queue');
                     const customer = this.queue.shift();
                     const waitTime = Date.now() - customer.arrivalTime;
-                    this.updateAverageWaitTime(waitTime);
-                    // Клиент из очереди обслужен
+                    
+                    // Обновление среднего времени ожидания
+                    if (this.statistics.servedCustomers > 0) {
+                        const totalWaitTime = this.statistics.averageWaitTime * this.statistics.servedCustomers;
+                        this.statistics.averageWaitTime = (totalWaitTime + waitTime) / (this.statistics.servedCustomers + 1);
+                    } else {
+                        this.statistics.averageWaitTime = waitTime;
+                    }
+                    
                     this.statistics.servedCustomers++;
                 } else {
-                    console.log('Store: Freeing server:', busyServer);
-                    this.serverStatus[busyServer] = false;
+                    console.log('Store: Freeing server:', busyServerIndex);
+                    this.serverStatus[busyServerIndex] = false;
                 }
+                
+                this._calculateStats();
+            } catch (error) {
+                console.error('Error in processServer:', error);
             }
-
-            this.updateStatistics();
         },
-
-        updateAverageWaitTime(newWaitTime) {
-            console.log('Store: Updating average wait time:', newWaitTime);
-            // Расчет скользящего среднего времени ожидания
-            const total = this.statistics.averageWaitTime * (this.statistics.servedCustomers - 1) + newWaitTime;
-            this.statistics.averageWaitTime = total / this.statistics.servedCustomers;
-        },
-
-        updateStatistics() {
-            console.log('Store: Updating statistics');
-            const timestamp = new Date().toISOString();
+        
+        _calculateStats() {
+            // Вспомогательный метод для обновления статистики
             const busyServers = this.serverStatus.filter(status => status).length;
-
             this.statistics.queueLength = this.queue.length;
             this.statistics.serverUtilization = busyServers / this.servers;
-
-            // Данные для графиков обновляем через таймер, чтобы не перегружать 
-            // график слишком частыми обновлениями
         },
         
         // Обновление данных для графиков с установленной периодичностью
         startChartUpdates() {
-            // Обновляем графики каждые 2 секунды
-            this.chartUpdateTimer = setInterval(() => {
-                this.addChartDataPoint();
-            }, 2000);
+            // Сначала убедимся, что предыдущий интервал остановлен
+            this.stopChartUpdates();
             
-            // Сразу добавляем первую точку данных
-            this.addChartDataPoint();
+            // Обновляем графики каждые 2 секунды
+            this.chartUpdateInterval = setInterval(() => {
+                // Прекращаем обновление, если симуляция остановлена
+                if (!this.isRunning) {
+                    this.stopChartUpdates();
+                    return;
+                }
+
+                try {
+                    this.addChartDataPoint();
+                } catch (error) {
+                    console.error('Error in chart update interval:', error);
+                    this.stopChartUpdates();
+                }
+            }, 2000);
         },
         
         stopChartUpdates() {
-            if (this.chartUpdateTimer) {
-                clearInterval(this.chartUpdateTimer);
-                this.chartUpdateTimer = null;
+            if (this.chartUpdateInterval) {
+                clearInterval(this.chartUpdateInterval);
+                this.chartUpdateInterval = null;
             }
         },
         
         addChartDataPoint() {
+            // Простая защита от переполнения истории
+            if (this.history.timestamps.length >= 1000) {
+                console.warn('History limit reached, stopping updates');
+                this.stopChartUpdates();
+                return;
+            }
+            
             const timestamp = new Date().toISOString();
             
-            this.history.queueLength.push(this.statistics.queueLength);
-            this.history.serverUtilization.push(this.statistics.serverUtilization);
+            // Безопасное копирование текущих значений
+            const queueLength = Number(this.statistics.queueLength);
+            const serverUtilization = Number(this.statistics.serverUtilization);
+            
+            this.history.queueLength.push(queueLength);
+            this.history.serverUtilization.push(serverUtilization);
             this.history.timestamps.push(timestamp);
 
             // Ограничиваем историю до 100 точек
@@ -161,14 +190,19 @@ export const useQueueStore = defineStore('queue', {
         },
 
         toggleSimulation() {
-            const newState = !this.isRunning;
-            console.log('Store: Toggle simulation from', this.isRunning, 'to', newState);
-            this.isRunning = newState;
-            
-            // Управление таймером графиков
-            if (this.isRunning) {
-                this.startChartUpdates();
-            } else {
+            try {
+                const newState = !this.isRunning;
+                console.log('Store: Toggle simulation from', this.isRunning, 'to', newState);
+                this.isRunning = newState;
+                
+                if (this.isRunning) {
+                    this.startChartUpdates();
+                } else {
+                    this.stopChartUpdates();
+                }
+            } catch (error) {
+                console.error('Error toggling simulation:', error);
+                this.isRunning = false;
                 this.stopChartUpdates();
             }
         }
