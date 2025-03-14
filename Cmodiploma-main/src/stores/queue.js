@@ -30,8 +30,11 @@ export const useQueueStore = defineStore('queue', {
             timestamps: []
         },
         
-        // Таймер для обновления графиков
-        chartUpdateInterval: null
+        // Интервалы
+        intervals: {
+            simulation: null,
+            charts: null
+        }
     }),
 
     actions: {
@@ -41,8 +44,8 @@ export const useQueueStore = defineStore('queue', {
             this.queue = [];
             this.resetStatistics();
             
-            // Останавливаем интервал обновления графиков, если он был запущен
-            this.stopChartUpdates();
+            // Останавливаем все интервалы
+            this.stopAllIntervals();
         },
 
         resetStatistics() {
@@ -134,13 +137,43 @@ export const useQueueStore = defineStore('queue', {
             this.statistics.serverUtilization = busyServers / this.servers;
         },
         
+        startSimulation() {
+            // Остановить все интервалы перед запуском
+            this.stopAllIntervals();
+            
+            this.isRunning = true;
+            
+            // Запускаем интервал симуляции
+            this.intervals.simulation = setInterval(() => {
+                if (Math.random() < this.arrivalRate) {
+                    this.addCustomer();
+                }
+                if (Math.random() < this.serviceRate) {
+                    this.processServer();
+                }
+            }, 1000);
+            
+            // Запускаем интервал обновления графиков
+            this.startChartUpdates();
+        },
+        
+        stopAllIntervals() {
+            // Очищаем все интервалы
+            if (this.intervals.simulation) {
+                clearInterval(this.intervals.simulation);
+                this.intervals.simulation = null;
+            }
+            
+            this.stopChartUpdates();
+        },
+        
         // Обновление данных для графиков с установленной периодичностью
         startChartUpdates() {
             // Сначала убедимся, что предыдущий интервал остановлен
             this.stopChartUpdates();
-            
+
             // Обновляем графики каждые 2 секунды
-            this.chartUpdateInterval = setInterval(() => {
+            this.intervals.charts = setInterval(() => {
                 // Прекращаем обновление, если симуляция остановлена
                 if (!this.isRunning) {
                     this.stopChartUpdates();
@@ -157,9 +190,9 @@ export const useQueueStore = defineStore('queue', {
         },
         
         stopChartUpdates() {
-            if (this.chartUpdateInterval) {
-                clearInterval(this.chartUpdateInterval);
-                this.chartUpdateInterval = null;
+            if (this.intervals.charts) {
+                clearInterval(this.intervals.charts);
+                this.intervals.charts = null;
             }
         },
         
@@ -206,19 +239,18 @@ export const useQueueStore = defineStore('queue', {
 
         toggleSimulation() {
             try {
-                const newState = !this.isRunning;
-                console.log('Store: Toggle simulation from', this.isRunning, 'to', newState);
-                this.isRunning = newState;
+                console.log('Store: Toggle simulation from', this.isRunning, 'to', !this.isRunning);
                 
                 if (this.isRunning) {
-                    this.startChartUpdates();
+                    this.isRunning = false;
+                    this.stopAllIntervals();
                 } else {
-                    this.stopChartUpdates();
+                    this.startSimulation();
                 }
             } catch (error) {
                 console.error('Error toggling simulation:', error);
                 this.isRunning = false;
-                this.stopChartUpdates();
+                this.stopAllIntervals();
             }
         }
     }

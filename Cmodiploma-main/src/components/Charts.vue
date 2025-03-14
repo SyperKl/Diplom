@@ -49,6 +49,18 @@
       </div>
     </div>
 
+    <div class="charts-visualization" v-if="store.history.timestamps.length > 0">
+      <div class="chart-wrapper">
+        <h3>Загрузка серверов</h3>
+        <canvas ref="serverLoadChart" width="400" height="200"></canvas>
+      </div>
+      
+      <div class="chart-wrapper">
+        <h3>Длина очереди</h3>
+        <canvas ref="queueLengthChart" width="400" height="200"></canvas>
+      </div>
+    </div>
+
     <div class="data-table">
       <table>
         <thead>
@@ -80,8 +92,9 @@
 </template>
 
 <script>
-import { defineComponent, ref, computed, onBeforeUnmount } from 'vue';
+import { defineComponent, ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useQueueStore } from '../stores/queue';
+import Chart from 'chart.js/auto';
 
 export default defineComponent({
   name: 'ChartsComponent',
@@ -90,6 +103,14 @@ export default defineComponent({
     const store = useQueueStore();
     const autoUpdate = ref(false);
     const updateTimer = ref(null);
+    
+    // Ссылки на элементы графиков
+    const serverLoadChart = ref(null);
+    const queueLengthChart = ref(null);
+    
+    // Экземпляры графиков
+    let serverLoadChartInstance = null;
+    let queueLengthChartInstance = null;
     
     // Вычисление индекса в обратном порядке
     const reverseIndex = (index) => {
@@ -138,18 +159,172 @@ export default defineComponent({
       return store.history.timestamps.length;
     });
     
+    // Инициализация графиков
+    const initCharts = () => {
+      if (serverLoadChartInstance) {
+        serverLoadChartInstance.destroy();
+      }
+      
+      if (queueLengthChartInstance) {
+        queueLengthChartInstance.destroy();
+      }
+      
+      // Пропускаем инициализацию, если нет данных
+      if (store.history.timestamps.length === 0) return;
+      
+      // Форматирование данных для графиков
+      const labels = store.history.timestamps.map(timestamp => {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString();
+      });
+      
+      const serverLoadData = store.history.serverUtilization.map(val => val * 100);
+      const queueLengthData = store.history.queueLength;
+      
+      // График загрузки серверов
+      const serverLoadCtx = serverLoadChart.value?.getContext('2d');
+      if (serverLoadCtx) {
+        serverLoadChartInstance = new Chart(serverLoadCtx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Загрузка серверов (%)',
+              data: serverLoadData,
+              borderColor: '#42b983',
+              backgroundColor: 'rgba(66, 185, 131, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                title: {
+                  display: true,
+                  text: 'Загрузка (%)'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: true,
+                position: 'top',
+              }
+            }
+          }
+        });
+      }
+      
+      // График длины очереди
+      const queueLengthCtx = queueLengthChart.value?.getContext('2d');
+      if (queueLengthCtx) {
+        queueLengthChartInstance = new Chart(queueLengthCtx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Длина очереди',
+              data: queueLengthData,
+              borderColor: '#3490dc',
+              backgroundColor: 'rgba(52, 144, 220, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Количество клиентов'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: true,
+                position: 'top',
+              }
+            }
+          }
+        });
+      }
+    };
+    
+    // Обновление графиков новыми данными
+    const updateCharts = () => {
+      if (!serverLoadChartInstance || !queueLengthChartInstance) {
+        initCharts();
+        return;
+      }
+      
+      // Форматирование данных для графиков
+      const labels = store.history.timestamps.map(timestamp => {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString();
+      });
+      
+      const serverLoadData = store.history.serverUtilization.map(val => val * 100);
+      const queueLengthData = store.history.queueLength;
+      
+      // Обновление графика загрузки серверов
+      serverLoadChartInstance.data.labels = labels;
+      serverLoadChartInstance.data.datasets[0].data = serverLoadData;
+      serverLoadChartInstance.update();
+      
+      // Обновление графика длины очереди
+      queueLengthChartInstance.data.labels = labels;
+      queueLengthChartInstance.data.datasets[0].data = queueLengthData;
+      queueLengthChartInstance.update();
+    };
+    
     // Обновление данных
     const refreshData = () => {
       store.addChartDataPoint();
+      updateCharts();
+    };
+    
+    // Проверка состояния симуляции
+    const checkSimulationState = () => {
+      if (!store.isRunning && autoUpdate.value) {
+        console.log('Автоматическая остановка обновления графиков, так как симуляция остановлена');
+        autoUpdate.value = false;
+        if (updateTimer.value) {
+          clearInterval(updateTimer.value);
+          updateTimer.value = null;
+        }
+      }
     };
     
     // Переключение автоматического обновления
     const autoUpdateToggle = () => {
+      // Если симуляция не запущена, и пользователь пытается включить автообновление
+      if (!store.isRunning && !autoUpdate.value) {
+        alert('Сначала запустите симуляцию!');
+        return;
+      }
+      
       autoUpdate.value = !autoUpdate.value;
       
       if (autoUpdate.value) {
         // Запуск автообновления каждые 3 секунды
         updateTimer.value = setInterval(() => {
+          // Проверяем состояние симуляции перед каждым обновлением
+          if (!store.isRunning) {
+            checkSimulationState();
+            return;
+          }
+          
           refreshData();
         }, 3000);
       } else {
@@ -194,17 +369,53 @@ export default defineComponent({
       document.body.removeChild(link);
     };
     
+    // Отслеживаем изменение состояния симуляции
+    watch(() => store.isRunning, (isRunning) => {
+      console.log('Изменение состояния симуляции:', isRunning);
+      if (!isRunning) {
+        checkSimulationState();
+      }
+    });
+    
+    // Отслеживаем изменения в данных
+    watch(() => store.history.timestamps.length, (newLength, oldLength) => {
+      if (newLength !== oldLength) {
+        updateCharts();
+      }
+    });
+    
+    onMounted(() => {
+      // Инициализируем графики, если есть данные
+      if (store.history.timestamps.length > 0) {
+        initCharts();
+      }
+      
+      // Сразу проверяем состояние симуляции
+      checkSimulationState();
+    });
+    
     // Очистка при размонтировании компонента
     onBeforeUnmount(() => {
       if (updateTimer.value) {
         clearInterval(updateTimer.value);
         updateTimer.value = null;
       }
+      
+      // Уничтожаем экземпляры графиков
+      if (serverLoadChartInstance) {
+        serverLoadChartInstance.destroy();
+      }
+      
+      if (queueLengthChartInstance) {
+        queueLengthChartInstance.destroy();
+      }
     });
     
     return {
       store,
       autoUpdate,
+      serverLoadChart,
+      queueLengthChart,
       formatTime,
       reverseIndex,
       getLoadClass,
@@ -281,7 +492,7 @@ export default defineComponent({
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Summary Stats */
+/* Статистика */
 .summary-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -323,7 +534,30 @@ export default defineComponent({
   color: var(--secondary-text, #a0aec0);
 }
 
-/* Table Styles */
+/* Визуализация графиков */
+.charts-visualization {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+.chart-wrapper {
+  background: var(--bg-color, #1a202c);
+  border-radius: 10px;
+  padding: 20px;
+  height: 300px;
+}
+
+.chart-wrapper h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: var(--text-color, #e2e8f0);
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+/* Стили таблицы */
 .data-table {
   overflow-x: auto;
   border-radius: 8px;
@@ -406,6 +640,10 @@ tr:hover {
   
   .summary-stats {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  
+  .charts-visualization {
+    grid-template-columns: 1fr;
   }
 }
 </style>

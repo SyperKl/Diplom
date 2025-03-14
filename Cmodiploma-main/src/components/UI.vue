@@ -147,7 +147,7 @@ export default {
 
   setup() {
     const store = useQueueStore()
-    const simulationInterval = ref(null)
+    const simulationInterval = ref(null);
 
     const { servers, maxQueueLength, arrivalRate, isRunning, statistics } = storeToRefs(store)
 
@@ -257,21 +257,8 @@ export default {
     })
 
     const toggleSimulation = () => {
+      // Просто вызываем метод переключения в сторе
       store.toggleSimulation()
-
-      if (store.isRunning) {
-        simulationInterval.value = setInterval(() => {
-          if (Math.random() < store.arrivalRate) {
-            store.addCustomer()
-          }
-          if (Math.random() < store.serviceRate) {
-            store.processServer()
-          }
-        }, 1000)
-      } else {
-        clearInterval(simulationInterval.value)
-        simulationInterval.value = null
-      }
     }
 
     const resetSimulation = () => {
@@ -279,10 +266,11 @@ export default {
     }
 
     onUnmounted(() => {
+      // Останавливаем все интервалы при размонтировании компонента
       if (simulationInterval.value) {
-        clearInterval(simulationInterval.value)
+        clearInterval(simulationInterval.value);
+        simulationInterval.value = null;
       }
-      // Остановка таймера обновления графиков
       store.stopChartUpdates();
     })
 
