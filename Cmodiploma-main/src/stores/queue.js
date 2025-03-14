@@ -34,7 +34,10 @@ export const useQueueStore = defineStore('queue', {
         intervals: {
             simulation: null,
             charts: null
-        }
+        },
+        
+        // Для защиты от слишком частых обновлений графиков
+        lastChartUpdate: 0
     }),
 
     actions: {
@@ -63,6 +66,7 @@ export const useQueueStore = defineStore('queue', {
                 serverUtilization: [],
                 timestamps: []
             };
+            this.lastChartUpdate = 0;
         },
 
         addCustomer() {
@@ -137,14 +141,20 @@ export const useQueueStore = defineStore('queue', {
             this.statistics.serverUtilization = busyServers / this.servers;
         },
         
+        // Централизованное управление симуляцией
         startSimulation() {
-            // Остановить все интервалы перед запуском
+            // Сначала остановим все существующие интервалы
             this.stopAllIntervals();
             
             this.isRunning = true;
             
             // Запускаем интервал симуляции
             this.intervals.simulation = setInterval(() => {
+                if (!this.isRunning) {
+                    this.stopAllIntervals();
+                    return;
+                }
+                
                 if (Math.random() < this.arrivalRate) {
                     this.addCustomer();
                 }
@@ -158,34 +168,29 @@ export const useQueueStore = defineStore('queue', {
         },
         
         stopAllIntervals() {
-            // Очищаем все интервалы
+            // Останавливаем интервал симуляции
             if (this.intervals.simulation) {
                 clearInterval(this.intervals.simulation);
                 this.intervals.simulation = null;
             }
             
+            // Останавливаем интервал графиков
             this.stopChartUpdates();
         },
         
-        // Обновление данных для графиков с установленной периодичностью
+        // Обновление данных для графиков
         startChartUpdates() {
             // Сначала убедимся, что предыдущий интервал остановлен
             this.stopChartUpdates();
 
             // Обновляем графики каждые 2 секунды
             this.intervals.charts = setInterval(() => {
-                // Прекращаем обновление, если симуляция остановлена
                 if (!this.isRunning) {
                     this.stopChartUpdates();
                     return;
                 }
 
-                try {
-                    this.addChartDataPoint();
-                } catch (error) {
-                    console.error('Error in chart update interval:', error);
-                    this.stopChartUpdates();
-                }
+                this.addChartDataPoint();
             }, 2000);
         },
         
@@ -196,21 +201,23 @@ export const useQueueStore = defineStore('queue', {
             }
         },
         
+        // Исправленный метод добавления точки на график
         addChartDataPoint() {
             try {
-                console.log('Store: Adding chart data point');
-                
-                // Защита от переполнения истории
-                if (this.history.timestamps.length >= 1000) {
-                    console.warn('History limit reached');
+                // Защита от слишком частого обновления
+                const now = Date.now();
+                if (now - this.lastChartUpdate < 500) {
                     return false;
                 }
+                this.lastChartUpdate = now;
+                
+                console.log('Store: Adding chart data point');
                 
                 const timestamp = new Date().toISOString();
                 
                 // Безопасное копирование текущих значений
-                const queueLength = Number(this.statistics.queueLength);
-                const serverUtilization = Number(this.statistics.serverUtilization);
+                const queueLength = Number(this.statistics.queueLength || 0);
+                const serverUtilization = Number(this.statistics.serverUtilization || 0);
                 
                 // Добавляем данные в историю
                 this.history.queueLength.push(queueLength);
@@ -218,10 +225,11 @@ export const useQueueStore = defineStore('queue', {
                 this.history.timestamps.push(timestamp);
 
                 // Ограничиваем историю до 50 точек
-                if (this.history.timestamps.length > 50) {
-                    this.history.queueLength.shift();
-                    this.history.serverUtilization.shift();
-                    this.history.timestamps.shift();
+                const maxPoints = 50;
+                if (this.history.timestamps.length > maxPoints) {
+                    this.history.queueLength = this.history.queueLength.slice(-maxPoints);
+                    this.history.serverUtilization = this.history.serverUtilization.slice(-maxPoints);
+                    this.history.timestamps = this.history.timestamps.slice(-maxPoints);
                 }
                 
                 console.log('Chart data added:', {

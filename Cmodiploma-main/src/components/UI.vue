@@ -147,26 +147,25 @@ export default {
 
   setup() {
     const store = useQueueStore()
-    const simulationInterval = ref(null);
 
-    const { servers, maxQueueLength, arrivalRate, isRunning, statistics } = storeToRefs(store)
+const { servers, maxQueueLength, arrivalRate, isRunning, statistics } = storeToRefs(store)
 
-    // Increment/decrement helpers
-    const incrementServers = () => {
-      if (servers.value < 5) servers.value++;
-    }
-    
-    const decrementServers = () => {
-      if (servers.value > 1) servers.value--;
-    }
-    
-    const incrementQueueLength = () => {
-      if (maxQueueLength.value < 20) maxQueueLength.value++;
-    }
-    
-    const decrementQueueLength = () => {
-      if (maxQueueLength.value > 1) maxQueueLength.value--;
-    }
+// Increment/decrement helpers
+const incrementServers = () => {
+  if (servers.value < 5) servers.value++;
+}
+
+const decrementServers = () => {
+  if (servers.value > 1) servers.value--;
+}
+
+const incrementQueueLength = () => {
+  if (maxQueueLength.value < 20) maxQueueLength.value++;
+}
+
+const decrementQueueLength = () => {
+  if (maxQueueLength.value > 1) maxQueueLength.value--;
+}
 
     // Computed properties for statistics display
     const getProcessedPercentage = computed(() => {
@@ -267,11 +266,7 @@ export default {
 
     onUnmounted(() => {
       // Останавливаем все интервалы при размонтировании компонента
-      if (simulationInterval.value) {
-        clearInterval(simulationInterval.value);
-        simulationInterval.value = null;
-      }
-      store.stopChartUpdates();
+      store.stopAllIntervals();
     })
 
     return {
