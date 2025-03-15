@@ -2,15 +2,13 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import VueApexCharts from 'vue3-apexcharts'
 
-// Создаем приложение
+
 const app = createApp(App)
 
-// Подключаем Pinia для управления состоянием
+
 app.use(createPinia())
-
-// Подключаем роутер
+app.use(VueApexCharts)
 app.use(router)
-
-// Монтируем приложение
 app.mount('#app')

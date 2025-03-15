@@ -219,17 +219,21 @@ export const useQueueStore = defineStore('queue', {
                 const queueLength = Number(this.statistics.queueLength || 0);
                 const serverUtilization = Number(this.statistics.serverUtilization || 0);
                 
-                // Добавляем данные в историю
-                this.history.queueLength.push(queueLength);
-                this.history.serverUtilization.push(serverUtilization);
-                this.history.timestamps.push(timestamp);
+                // Создаем новые массивы вместо изменения существующих
+                this.history = {
+                    queueLength: [...this.history.queueLength, queueLength],
+                    serverUtilization: [...this.history.serverUtilization, serverUtilization],
+                    timestamps: [...this.history.timestamps, timestamp]
+                };
 
                 // Ограничиваем историю до 50 точек
                 const maxPoints = 50;
                 if (this.history.timestamps.length > maxPoints) {
-                    this.history.queueLength = this.history.queueLength.slice(-maxPoints);
-                    this.history.serverUtilization = this.history.serverUtilization.slice(-maxPoints);
-                    this.history.timestamps = this.history.timestamps.slice(-maxPoints);
+                    this.history = {
+                        queueLength: this.history.queueLength.slice(-maxPoints),
+                        serverUtilization: this.history.serverUtilization.slice(-maxPoints),
+                        timestamps: this.history.timestamps.slice(-maxPoints)
+                    };
                 }
                 
                 console.log('Chart data added:', {

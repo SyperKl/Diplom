@@ -3,12 +3,6 @@
     <div class="charts-header">
       <h2>Данные для графиков</h2>
       <div class="charts-controls">
-        <button @click="autoUpdateToggle" :class="['auto-update-btn', { active: autoUpdate }]">
-          {{ autoUpdate ? 'Остановить обновление' : 'Автообновление' }}
-        </button>
-        <button @click="refreshData" class="refresh-btn">
-          Обновить данные
-        </button>
         <button @click="exportData" class="export-btn">
           Экспорт CSV
         </button>
@@ -52,12 +46,22 @@
     <div class="charts-visualization" v-if="store.history.timestamps.length > 0">
       <div class="chart-wrapper">
         <h3>Загрузка серверов</h3>
-        <canvas ref="serverLoadChart" width="400" height="200"></canvas>
+        <apexchart
+          type="area"
+          height="300"
+          :options="serverLoadOptions"
+          :series="serverLoadSeries"
+        ></apexchart>
       </div>
       
       <div class="chart-wrapper">
         <h3>Длина очереди</h3>
-        <canvas ref="queueLengthChart" width="400" height="200"></canvas>
+        <apexchart
+          type="area"
+          height="300"
+          :options="queueLengthOptions"
+          :series="queueLengthSeries"
+        ></apexchart>
       </div>
     </div>
 
@@ -92,25 +96,20 @@
 </template>
 
 <script>
-import { defineComponent, ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { defineComponent, ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useQueueStore } from '../stores/queue';
-import Chart from 'chart.js/auto';
+import VueApexCharts from 'vue3-apexcharts';
 
 export default defineComponent({
   name: 'ChartsComponent',
+  components: {
+    apexchart: VueApexCharts
+  },
   
   setup() {
     const store = useQueueStore();
     const autoUpdate = ref(false);
     const updateTimer = ref(null);
-    
-    // Ссылки на элементы графиков
-    const serverLoadChart = ref(null);
-    const queueLengthChart = ref(null);
-    
-    // Экземпляры графиков
-    let serverLoadChartInstance = null;
-    let queueLengthChartInstance = null;
     
     // Вычисление индекса в обратном порядке
     const reverseIndex = (index) => {
@@ -159,139 +158,189 @@ export default defineComponent({
       return store.history.timestamps.length;
     });
     
-    // Инициализация графиков
-    const initCharts = () => {
-      if (serverLoadChartInstance) {
-        serverLoadChartInstance.destroy();
-      }
-      
-      if (queueLengthChartInstance) {
-        queueLengthChartInstance.destroy();
-      }
-      
-      // Пропускаем инициализацию, если нет данных
-      if (store.history.timestamps.length === 0) return;
-      
-      // Форматирование данных для графиков
-      const labels = store.history.timestamps.map(timestamp => {
-        const date = new Date(timestamp);
-        return date.toLocaleTimeString();
-      });
-      
-      const serverLoadData = store.history.serverUtilization.map(val => val * 100);
-      const queueLengthData = store.history.queueLength;
-      
-      // График загрузки серверов
-      const serverLoadCtx = serverLoadChart.value?.getContext('2d');
-      if (serverLoadCtx) {
-        serverLoadChartInstance = new Chart(serverLoadCtx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Загрузка серверов (%)',
-              data: serverLoadData,
-              borderColor: '#42b983',
-              backgroundColor: 'rgba(66, 185, 131, 0.1)',
-              borderWidth: 2,
-              fill: true,
-              tension: 0.4
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              y: {
-                beginAtZero: true,
-                max: 100,
-                title: {
-                  display: true,
-                  text: 'Загрузка (%)'
-                }
-              }
-            },
-            plugins: {
-              legend: {
-                display: true,
-                position: 'top',
-              }
-            }
-          }
-        });
-      }
-      
-      // График длины очереди
-      const queueLengthCtx = queueLengthChart.value?.getContext('2d');
-      if (queueLengthCtx) {
-        queueLengthChartInstance = new Chart(queueLengthCtx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Длина очереди',
-              data: queueLengthData,
-              borderColor: '#3490dc',
-              backgroundColor: 'rgba(52, 144, 220, 0.1)',
-              borderWidth: 2,
-              fill: true,
-              tension: 0.4
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              y: {
-                beginAtZero: true,
-                title: {
-                  display: true,
-                  text: 'Количество клиентов'
-                }
-              }
-            },
-            plugins: {
-              legend: {
-                display: true,
-                position: 'top',
-              }
-            }
-          }
-        });
-      }
-    };
+    // Данные и опции для графика загрузки серверов с ApexCharts
+    const serverLoadSeries = computed(() => {
+      return [{
+        name: 'Загрузка серверов (%)',
+        data: store.history.serverUtilization.map(val => parseFloat((val * 100).toFixed(1)))
+      }];
+    });
     
-    // Обновление графиков новыми данными
-    const updateCharts = () => {
-      if (!serverLoadChartInstance || !queueLengthChartInstance) {
-        initCharts();
-        return;
-      }
-      
-      // Форматирование данных для графиков
-      const labels = store.history.timestamps.map(timestamp => {
-        const date = new Date(timestamp);
-        return date.toLocaleTimeString();
-      });
-      
-      const serverLoadData = store.history.serverUtilization.map(val => val * 100);
-      const queueLengthData = store.history.queueLength;
-      
-      // Обновление графика загрузки серверов
-      serverLoadChartInstance.data.labels = labels;
-      serverLoadChartInstance.data.datasets[0].data = serverLoadData;
-      serverLoadChartInstance.update();
-      
-      // Обновление графика длины очереди
-      queueLengthChartInstance.data.labels = labels;
-      queueLengthChartInstance.data.datasets[0].data = queueLengthData;
-      queueLengthChartInstance.update();
-    };
+    const serverLoadOptions = computed(() => {
+      return {
+        chart: {
+          type: 'area',
+          height: 300,
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+          },
+          toolbar: {
+            show: true,
+            tools: {
+              download: true,
+              selection: true,
+              zoom: true,
+              zoomin: true,
+              zoomout: true,
+              pan: true,
+              reset: true
+            }
+          }
+        },
+        colors: ['#42b983'],
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 3
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.7,
+            opacityTo: 0.3,
+            stops: [0, 90, 100]
+          }
+        },
+        markers: {
+          size: 4,
+          colors: ['#42b983'],
+          strokeColors: '#fff',
+          strokeWidth: 2
+        },
+        tooltip: {
+          theme: 'dark',
+          y: {
+            formatter: function(val) {
+              return val.toFixed(1) + '%';
+            }
+          }
+        },
+        grid: {
+          borderColor: 'rgba(0,0,0,0.1)',
+          row: {
+            colors: ['transparent', 'transparent'],
+            opacity: 0.5
+          }
+        },
+        xaxis: {
+          categories: store.history.timestamps.map(timestamp => {
+            return new Date(timestamp).toLocaleTimeString();
+          }),
+          labels: {
+            style: {
+              colors: []
+            }
+          }
+        },
+        yaxis: {
+          min: 0,
+          max: 100,
+          title: {
+            text: 'Загрузка (%)'
+          }
+        },
+        title: {
+          text: 'Загрузка серверов',
+          align: 'left'
+        }
+      };
+    });
+    
+    // Данные и опции для графика длины очереди с ApexCharts
+    const queueLengthSeries = computed(() => {
+      return [{
+        name: 'Длина очереди',
+        data: store.history.queueLength
+      }];
+    });
+    
+    const queueLengthOptions = computed(() => {
+      return {
+        chart: {
+          type: 'area',
+          height: 300,
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+          },
+          toolbar: {
+            show: true,
+            tools: {
+              download: true,
+              selection: true,
+              zoom: true,
+              zoomin: true,
+              zoomout: true,
+              pan: true,
+              reset: true
+            }
+          }
+        },
+        colors: ['#3490dc'],
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 3
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.7,
+            opacityTo: 0.3,
+            stops: [0, 90, 100]
+          }
+        },
+        markers: {
+          size: 4,
+          colors: ['#3490dc'],
+          strokeColors: '#fff',
+          strokeWidth: 2
+        },
+        tooltip: {
+          theme: 'dark'
+        },
+        grid: {
+          borderColor: 'rgba(0,0,0,0.1)',
+          row: {
+            colors: ['transparent', 'transparent'],
+            opacity: 0.5
+          }
+        },
+        xaxis: {
+          categories: store.history.timestamps.map(timestamp => {
+            return new Date(timestamp).toLocaleTimeString();
+          }),
+          labels: {
+            style: {
+              colors: []
+            }
+          }
+        },
+        yaxis: {
+          min: 0,
+          title: {
+            text: 'Количество клиентов'
+          }
+        },
+        title: {
+          text: 'Длина очереди',
+          align: 'left'
+        }
+      };
+    });
     
     // Обновление данных
     const refreshData = () => {
       store.addChartDataPoint();
-      updateCharts();
     };
     
     // Проверка состояния симуляции
@@ -377,45 +426,31 @@ export default defineComponent({
       }
     });
     
-    // Отслеживаем изменения в данных
+    // Безопасно отслеживаем изменения в данных
     watch(() => store.history.timestamps.length, (newLength, oldLength) => {
       if (newLength !== oldLength) {
-        updateCharts();
+        nextTick(() => {
+          console.log('Обновление графиков после изменения данных');
+        });
       }
     });
     
     onMounted(() => {
-      // Инициализируем графики, если есть данные
-      if (store.history.timestamps.length > 0) {
-        initCharts();
-      }
-      
       // Сразу проверяем состояние симуляции
       checkSimulationState();
     });
     
     // Очистка при размонтировании компонента
-    onBeforeUnmount(() => {
+    onUnmounted(() => {
       if (updateTimer.value) {
         clearInterval(updateTimer.value);
         updateTimer.value = null;
-      }
-      
-      // Уничтожаем экземпляры графиков
-      if (serverLoadChartInstance) {
-        serverLoadChartInstance.destroy();
-      }
-      
-      if (queueLengthChartInstance) {
-        queueLengthChartInstance.destroy();
       }
     });
     
     return {
       store,
       autoUpdate,
-      serverLoadChart,
-      queueLengthChart,
       formatTime,
       reverseIndex,
       getLoadClass,
@@ -425,7 +460,12 @@ export default defineComponent({
       avgServerLoad,
       maxServerLoad,
       avgQueueLength,
-      dataPoints
+      dataPoints,
+      // ApexCharts
+      serverLoadSeries,
+      serverLoadOptions,
+      queueLengthSeries,
+      queueLengthOptions
     };
   }
 });
@@ -433,10 +473,10 @@ export default defineComponent({
 
 <style scoped>
 .charts-container {
-  background: var(--card-bg, #2d3748);
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 25px;
-  box-shadow: 0 4px 15px var(--shadow-color, rgba(0, 0, 0, 0.3));
+  box-shadow: 0 4px 15px var(--shadow-color);
   margin-top: 30px;
 }
 
@@ -448,7 +488,7 @@ export default defineComponent({
 }
 
 .charts-header h2 {
-  color: var(--text-color, #e2e8f0);
+  color: var(--text-color);
   margin: 0;
   font-size: 1.5rem;
 }
@@ -468,13 +508,13 @@ export default defineComponent({
 }
 
 .refresh-btn {
-  background: var(--primary-color, #42b983);
+  background: var(--primary-color);
   color: white;
 }
 
 .auto-update-btn {
-  background: var(--secondary-text, #a0aec0);
-  color: var(--text-color, #e2e8f0);
+  background: var(--secondary-text);
+  color: var(--text-color);
 }
 
 .auto-update-btn.active {
@@ -501,7 +541,7 @@ export default defineComponent({
 }
 
 .summary-card {
-  background: var(--bg-color, #1a202c);
+  background: var(--bg-color);
   padding: 15px;
   border-radius: 10px;
   display: flex;
@@ -512,7 +552,7 @@ export default defineComponent({
 
 .summary-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 15px var(--shadow-hover, rgba(0, 0, 0, 0.4));
+  box-shadow: 0 6px 15px var(--shadow-hover);
 }
 
 .summary-icon {
@@ -526,12 +566,12 @@ export default defineComponent({
 .summary-value {
   font-size: 1.4rem;
   font-weight: 600;
-  color: var(--text-color, #e2e8f0);
+  color: var(--text-color);
 }
 
 .summary-label {
   font-size: 0.9rem;
-  color: var(--secondary-text, #a0aec0);
+  color: var(--secondary-text);
 }
 
 /* Визуализация графиков */
@@ -543,16 +583,16 @@ export default defineComponent({
 }
 
 .chart-wrapper {
-  background: var(--bg-color, #1a202c);
+  background: var(--bg-color);
   border-radius: 10px;
   padding: 20px;
-  height: 300px;
+  height: auto;
 }
 
 .chart-wrapper h3 {
   margin-top: 0;
   margin-bottom: 15px;
-  color: var(--text-color, #e2e8f0);
+  color: var(--text-color);
   font-size: 1.1rem;
   text-align: center;
 }
@@ -561,7 +601,7 @@ export default defineComponent({
 .data-table {
   overflow-x: auto;
   border-radius: 8px;
-  background: var(--bg-color, #1a202c);
+  background: var(--bg-color);
 }
 
 table {
@@ -576,8 +616,8 @@ th, td {
 }
 
 th {
-  background: var(--card-bg, #2d3748);
-  color: var(--primary-color, #42b983);
+  background: var(--card-bg);
+  color: var(--primary-color);
   font-weight: 600;
   position: sticky;
   top: 0;
@@ -589,7 +629,7 @@ tr:hover {
 }
 
 .even-row {
-  background-color: var(--bg-color, #1a202c);
+  background-color: var(--bg-color);
 }
 
 .odd-row {
@@ -622,7 +662,7 @@ tr:hover {
 .no-data {
   padding: 30px;
   text-align: center;
-  color: var(--secondary-text, #a0aec0);
+  color: var(--secondary-text);
   font-style: italic;
 }
 
