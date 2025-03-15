@@ -3,7 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import VueApexCharts from 'vue3-apexcharts'
-
+import './assets/custom.css'
 
 const app = createApp(App)
 
