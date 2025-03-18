@@ -1,5 +1,8 @@
 <template>
   <div :class="['app-container', { 'dark-mode': isDarkMode }]">
+    <!-- Добавляем компонент уведомлений -->
+    <Notifications />
+    
     <nav class="main-nav">
       <div class="nav-container">
         <div class="logo">
@@ -51,7 +54,7 @@
         
         <div class="footer-info">
           <p>Система моделирования СМО © {{ currentYear }}</p>
-          <p class="version">Версия 1.0.0</p>
+          <p class="version">Версия 1.1.0</p>
         </div>
       </div>
     </footer>
@@ -60,6 +63,9 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
+import { EVENTS } from '@/constants'
+import eventBus from '@/utils/eventBus'
+import notificationService from '@/services/notifications'
 
 export default {
   name: 'App',
@@ -73,18 +79,33 @@ export default {
       document.documentElement.classList.toggle('dark-theme', isDarkMode.value);
     };
     
+    const setupEventListeners = () => {
+      eventBus.on(EVENTS.SIMULATION_STARTED, () => {
+        notificationService.info('Симуляция запущена');
+      });
+      
+      eventBus.on(EVENTS.SIMULATION_STOPPED, () => {
+        notificationService.info('Симуляция остановлена');
+      });
+      
+      eventBus.on(EVENTS.CUSTOMER_REJECTED, () => {
+        notificationService.warning('Клиент отклонен: очередь заполнена', 3000);
+      });
+    };
+    
     onMounted(() => {
-      // Check for saved preference
       const savedMode = localStorage.getItem('darkMode');
       if (savedMode !== null) {
         isDarkMode.value = savedMode === 'true';
         document.documentElement.classList.toggle('dark-theme', isDarkMode.value);
       } else {
-        // Check for system preference
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         isDarkMode.value = prefersDark;
         document.documentElement.classList.toggle('dark-theme', prefersDark);
       }
+      
+      setupEventListeners();
+      notificationService.success('Приложение успешно загружено');
     });
     
     return {
@@ -372,6 +393,72 @@ body {
   transform: translateY(-20px);
 }
 
+/* Уведомления */
+.notifications {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notification {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background-color: var(--card-bg);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.3s ease-out;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.notification.success {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.notification.info {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.notification.warning {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+.notification.error {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.notification-close {
+  margin-left: auto;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+}
+
+.notification-close:hover {
+  opacity: 1;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Адаптивность */
 @media (max-width: 768px) {
   .nav-container {
     flex-wrap: wrap;
