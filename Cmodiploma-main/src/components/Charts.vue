@@ -1,18 +1,17 @@
 <template>
   <div class="charts-container">
     <div class="charts-header">
-      <h2>Данные мониторинга</h2>
+      <h2>Мониторинг работы системы</h2>
       <div class="charts-controls">
-        <button @click="refreshData" class="refresh-btn" :disabled="!store.isRunning">
-          <span class="refresh-icon">⟳</span>
+        <button @click="refreshData" class="btn refresh-btn" :disabled="!store.isRunning">
+          <span class="refresh-icon">🔄</span>
           Обновить данные
         </button>
-        <button @click="autoUpdateToggle" :class="['auto-update-btn', { 'active': autoUpdate }]">
-          <span class="auto-icon">⏱</span>
-          {{ autoUpdate ? 'Остановить авто-обновление' : 'Включить авто-обновление' }}
+        <button @click="autoUpdateToggle" :class="['btn auto-update-btn', { 'active': autoUpdate }]">
+          {{ autoUpdate ? 'Остановить автообновление' : 'Автообновление' }}
         </button>
-        <button @click="exportData" class="export-btn" :disabled="store.history.timestamps.length === 0">
-          <span class="export-icon">⬇️</span>
+        <button @click="exportData" class="btn export-btn">
+          <span class="export-icon">📊</span>
           Экспорт CSV
         </button>
       </div>
@@ -52,7 +51,14 @@
       </div>
     </div>
 
-    <div class="charts-visualization" v-if="store.history.timestamps.length > 0">
+    <div v-if="store.history.timestamps.length === 0" class="empty-state">
+      <div class="empty-icon">📊</div>
+      <h3>Нет данных для отображения</h3>
+      <p>Запустите симуляцию и дождитесь сбора статистики для отображения графиков</p>
+      <button @click="refreshData" class="btn primary-btn">Обновить данные</button>
+    </div>
+
+    <div class="charts-visualization" v-else>
       <div class="chart-wrapper">
         <h3>Загрузка серверов</h3>
         <apexchart
@@ -72,13 +78,12 @@
           :series="queueLengthSeries"
         ></apexchart>
       </div>
-    </div>
 
-    <div v-if="store.systemType === 'priority' && store.history.timestamps.length > 0" class="priority-chart-wrapper">
-      <div class="chart-wrapper">
-        <h3>Обслуживание по приоритетам</h3>
+      <!-- Опциональный график для приоритетной очереди -->
+      <div class="chart-wrapper" v-if="showPriorityChart">
+        <h3>Обслужено клиентов по приоритетам</h3>
         <apexchart
-          type="pie"
+          type="bar"
           height="300"
           :options="priorityChartOptions"
           :series="priorityChartSeries"
@@ -86,26 +91,14 @@
       </div>
     </div>
 
-    <div class="no-data-message" v-if="store.history.timestamps.length === 0">
-      <div class="empty-state">
-        <div class="empty-icon">📈</div>
-        <h3>Нет данных для отображения</h3>
-        <p>Запустите симуляцию для сбора данных о загрузке серверов и длине очереди.</p>
-        <button @click="refreshData" class="action-button">Обновить данные</button>
-      </div>
-    </div>
-
     <div class="data-table" v-if="store.history.timestamps.length > 0">
-      <h3>История симуляции</h3>
+      <h3>История наблюдений</h3>
       <table>
         <thead>
           <tr>
             <th class="time-col">Время</th>
             <th class="load-col">Загрузка серверов (%)</th>
             <th class="queue-col">Длина очереди</th>
-            <th v-if="store.systemType === 'priority'" class="priority-col">Высокий приоритет</th>
-            <th v-if="store.systemType === 'priority'" class="priority-col">Средний приоритет</th>
-            <th v-if="store.systemType === 'priority'" class="priority-col">Низкий приоритет</th>
           </tr>
         </thead>
         <tbody>
@@ -117,33 +110,16 @@
               {{ (store.history.serverUtilization[reverseIndex(index)] * 100).toFixed(1) }}%
             </td>
             <td>{{ store.history.queueLength[reverseIndex(index)] }}</td>
-            <td v-if="store.systemType === 'priority'">
-              {{ store.history.highPriorityServed[reverseIndex(index)] || 0 }}
-            </td>
-            <td v-if="store.systemType === 'priority'">
-              {{ store.history.mediumPriorityServed[reverseIndex(index)] || 0 }}
-            </td>
-            <td v-if="store.systemType === 'priority'">
-              {{ store.history.lowPriorityServed[reverseIndex(index)] || 0 }}
-            </td>
           </tr>
         </tbody>
       </table>
-    </div>
-
-    <div class="save-section" v-if="store.history.timestamps.length > 0">
-      <button @click="saveSimulationResults" class="save-btn">
-        <span class="save-icon">💾</span>
-        Сохранить результаты симуляции
-      </button>
     </div>
   </div>
 </template>
 
 <script>
-import { defineComponent, ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { defineComponent, ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useQueueStore } from '../stores/queue';
-import { API_URL } from '../config';
 
 export default defineComponent({
   name: 'ChartsComponent',
@@ -152,6 +128,12 @@ export default defineComponent({
     const store = useQueueStore();
     const autoUpdate = ref(false);
     const updateTimer = ref(null);
+    
+    // Определяем, показывать ли график приоритетов
+    const showPriorityChart = computed(() => {
+      return store.systemType === 'priority' && 
+             store.history.highPriorityServed.length > 0;
+    });
     
     // Вычисление индекса в обратном порядке
     const reverseIndex = (index) => {
@@ -230,12 +212,8 @@ export default defineComponent({
               reset: true
             }
           },
-          dropShadow: {
-            enabled: true,
-            top: 3,
-            left: 2,
-            blur: 4,
-            opacity: 0.1
+          theme: {
+            mode: 'light'
           }
         },
         colors: ['#42b983'],
@@ -262,7 +240,6 @@ export default defineComponent({
           strokeWidth: 2
         },
         tooltip: {
-          theme: 'dark',
           y: {
             formatter: function(val) {
               return val.toFixed(1) + '%';
@@ -292,27 +269,6 @@ export default defineComponent({
           title: {
             text: 'Загрузка (%)'
           }
-        },
-        title: {
-          text: 'Загрузка серверов в реальном времени',
-          align: 'left',
-          style: {
-            fontSize: '14px'
-          }
-        },
-        annotations: {
-          yaxis: [{
-            y: 90,
-            borderColor: '#e74c3c',
-            label: {
-              borderColor: '#e74c3c',
-              style: {
-                color: '#fff',
-                background: '#e74c3c'
-              },
-              text: 'Критический уровень'
-            }
-          }]
         }
       };
     });
@@ -347,12 +303,8 @@ export default defineComponent({
               reset: true
             }
           },
-          dropShadow: {
-            enabled: true,
-            top: 3,
-            left: 2,
-            blur: 4,
-            opacity: 0.1
+          theme: {
+            mode: 'light'
           }
         },
         colors: ['#3490dc'],
@@ -379,7 +331,11 @@ export default defineComponent({
           strokeWidth: 2
         },
         tooltip: {
-          theme: 'dark'
+          y: {
+            formatter: function(val) {
+              return val;
+            }
+          }
         },
         grid: {
           borderColor: 'rgba(0,0,0,0.1)',
@@ -403,72 +359,81 @@ export default defineComponent({
           title: {
             text: 'Количество клиентов'
           }
-        },
-        title: {
-          text: 'Изменение длины очереди',
-          align: 'left',
-          style: {
-            fontSize: '14px'
-          }
-        },
-        annotations: {
-          yaxis: [{
-            y: store.maxQueueLength,
-            borderColor: '#f1c40f',
-            label: {
-              borderColor: '#f1c40f',
-              style: {
-                color: '#fff',
-                background: '#f1c40f'
-              },
-              text: 'Максимальная длина'
-            }
-          }]
         }
       };
     });
-
-    // Данные и опции для графика приоритетной очереди
+    
+    // Данные и опции для графика приоритетов
     const priorityChartSeries = computed(() => {
-      // Получаем последние значения для каждого приоритета
-      const high = store.history.highPriorityServed.length > 0 
-        ? store.history.highPriorityServed[store.history.highPriorityServed.length - 1] : 0;
-        
-      const medium = store.history.mediumPriorityServed.length > 0 
-        ? store.history.mediumPriorityServed[store.history.mediumPriorityServed.length - 1] : 0;
-        
-      const low = store.history.lowPriorityServed.length > 0 
-        ? store.history.lowPriorityServed[store.history.lowPriorityServed.length - 1] : 0;
-        
-      return [high, medium, low];
+      if (!showPriorityChart.value) return [];
+      
+      return [
+        {
+          name: 'Высокий приоритет',
+          data: store.history.highPriorityServed
+        },
+        {
+          name: 'Средний приоритет',
+          data: store.history.mediumPriorityServed
+        },
+        {
+          name: 'Низкий приоритет',
+          data: store.history.lowPriorityServed
+        }
+      ];
     });
     
     const priorityChartOptions = computed(() => {
       return {
         chart: {
-          type: 'pie',
-          height: 300
-        },
-        labels: ['Высокий приоритет', 'Средний приоритет', 'Низкий приоритет'],
-        colors: ['#e74c3c', '#f1c40f', '#3498db'],
-        legend: {
-          position: 'bottom'
-        },
-        responsive: [{
-          breakpoint: 480,
-          options: {
-            chart: {
-              width: 200
-            },
-            legend: {
-              position: 'bottom'
-            }
+          type: 'bar',
+          height: 300,
+          stacked: true,
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+          },
+          toolbar: {
+            show: true
+          },
+          theme: {
+            mode: 'light'
           }
-        }],
+        },
+        colors: ['#e74c3c', '#f39c12', '#3498db'],
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            columnWidth: '55%',
+            endingShape: 'rounded'
+          },
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          show: true,
+          width: 2,
+          colors: ['transparent']
+        },
+        xaxis: {
+          categories: store.history.timestamps.map(timestamp => {
+            return new Date(timestamp).toLocaleTimeString();
+          }),
+        },
+        yaxis: {
+          title: {
+            text: 'Количество клиентов'
+          }
+        },
+        fill: {
+          opacity: 1
+        },
         tooltip: {
           y: {
-            formatter: function(val) {
-              return val + ' клиентов';
+            formatter: function (val) {
+              return val + " клиентов";
             }
           }
         }
@@ -478,18 +443,6 @@ export default defineComponent({
     // Обновление данных
     const refreshData = () => {
       store.addChartDataPoint();
-    };
-    
-    // Проверка состояния симуляции
-    const checkSimulationState = () => {
-      if (!store.isRunning && autoUpdate.value) {
-        console.log('Автоматическая остановка обновления графиков, так как симуляция остановлена');
-        autoUpdate.value = false;
-        if (updateTimer.value) {
-          clearInterval(updateTimer.value);
-          updateTimer.value = null;
-        }
-      }
     };
     
     // Переключение автоматического обновления
@@ -503,16 +456,20 @@ export default defineComponent({
       autoUpdate.value = !autoUpdate.value;
       
       if (autoUpdate.value) {
-        // Запуск автообновления каждые 2 секунды
+        // Запуск автообновления каждые 3 секунды
         updateTimer.value = setInterval(() => {
           // Проверяем состояние симуляции перед каждым обновлением
           if (!store.isRunning) {
-            checkSimulationState();
+            autoUpdate.value = false;
+            if (updateTimer.value) {
+              clearInterval(updateTimer.value);
+              updateTimer.value = null;
+            }
             return;
           }
           
           refreshData();
-        }, 2000);
+        }, 3000);
       } else {
         // Остановка автообновления
         if (updateTimer.value) {
@@ -531,40 +488,21 @@ export default defineComponent({
       
       // Формирование CSV данных
       let csvContent = 'data:text/csv;charset=utf-8,';
-      
-      // Заголовки столбцов
-      let headers = 'Время,Загрузка серверов (%),Длина очереди';
-      
-      // Добавляем заголовки для приоритетной очереди, если применимо
-      if (store.systemType === 'priority') {
-        headers += ',Высокий приоритет,Средний приоритет,Низкий приоритет';
-      }
-      
-      csvContent += headers + '\n';
+      csvContent += 'Время,Загрузка серверов (%),Длина очереди\n';
       
       for (let i = 0; i < store.history.timestamps.length; i++) {
         const time = formatTime(store.history.timestamps[i]);
         const load = (store.history.serverUtilization[i] * 100).toFixed(1);
         const queue = store.history.queueLength[i];
         
-        let row = `${time},${load},${queue}`;
-        
-        // Добавляем данные приоритетов, если применимо
-        if (store.systemType === 'priority') {
-          const high = store.history.highPriorityServed[i] || 0;
-          const medium = store.history.mediumPriorityServed[i] || 0;
-          const low = store.history.lowPriorityServed[i] || 0;
-          row += `,${high},${medium},${low}`;
-        }
-        
-        csvContent += row + '\n';
+        csvContent += `${time},${load},${queue}\n`;
       }
       
       // Создание ссылки для скачивания
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `smo-stats-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`);
+      link.setAttribute('download', `smo-stats-${new Date().toISOString().slice(0, 19)}.csv`);
       document.body.appendChild(link);
       
       // Скачивание
@@ -574,76 +512,14 @@ export default defineComponent({
       document.body.removeChild(link);
     };
     
-    // Сохранение результатов симуляции на сервере
-    const saveSimulationResults = async () => {
-      try {
-        if (store.history.timestamps.length === 0) {
-          console.log('Нет данных для сохранения');
-          return;
-        }
-        
-        const simulationData = {
-          parameters: {
-            servers: store.servers,
-            maxQueueLength: store.maxQueueLength,
-            arrivalRate: store.arrivalRate,
-            serviceRate: store.serviceRate
-          },
-          statistics: {
-            totalCustomers: store.statistics.totalCustomers,
-            servedCustomers: store.statistics.servedCustomers,
-            rejectedCustomers: store.statistics.rejectedCustomers,
-            averageWaitTime: store.statistics.averageWaitTime,
-            serverUtilization: store.statistics.serverUtilization
-          }
-        };
-        
-        const response = await fetch(`${API_URL}/simulations`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(simulationData)
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Simulation saved successfully:', data);
-          alert('Результаты симуляции успешно сохранены!');
-        } else {
-          console.error('Error saving simulation:', response.statusText);
-          alert('Ошибка при сохранении результатов симуляции');
-        }
-      } catch (error) {
-        console.error('Error saving simulation:', error);
-        alert('Ошибка при сохранении результатов симуляции');
-      }
-    };
-    
     // Отслеживаем изменение состояния симуляции
     watch(() => store.isRunning, (isRunning) => {
-      console.log('Изменение состояния симуляции:', isRunning);
-      if (!isRunning) {
-        checkSimulationState();
-      }
-    });
-    
-    // Безопасно отслеживаем изменения в данных
-    watch(() => store.history.timestamps.length, (newLength, oldLength) => {
-      if (newLength !== oldLength) {
-        nextTick(() => {
-          console.log('Обновление графиков после изменения данных');
-        });
-      }
-    });
-    
-    onMounted(() => {
-      // Сразу проверяем состояние симуляции
-      checkSimulationState();
-      
-      // Если симуляция запущена, сразу обновляем данные
-      if (store.isRunning) {
-        refreshData();
+      if (!isRunning && autoUpdate.value) {
+        autoUpdate.value = false;
+        if (updateTimer.value) {
+          clearInterval(updateTimer.value);
+          updateTimer.value = null;
+        }
       }
     });
     
@@ -651,20 +527,19 @@ export default defineComponent({
     onUnmounted(() => {
       if (updateTimer.value) {
         clearInterval(updateTimer.value);
-        updateTimer.value = null;
       }
     });
     
     return {
       store,
       autoUpdate,
+      showPriorityChart,
       formatTime,
       reverseIndex,
       getLoadClass,
       refreshData,
       autoUpdateToggle,
       exportData,
-      saveSimulationResults,
       avgServerLoad,
       maxServerLoad,
       avgQueueLength,
@@ -694,37 +569,21 @@ export default defineComponent({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 10px;
+  margin-bottom: 25px;
 }
 
 .charts-header h2 {
   color: var(--text-color);
   margin: 0;
   font-size: 1.5rem;
-  position: relative;
-  padding-bottom: 10px;
-}
-
-.charts-header h2::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 40px;
-  height: 3px;
-  background: var(--primary-color);
-  border-radius: 1.5px;
 }
 
 .charts-controls {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
 }
 
-.refresh-btn, .auto-update-btn, .export-btn, .save-btn {
+.btn {
   padding: 8px 16px;
   border-radius: 8px;
   font-weight: 500;
@@ -733,18 +592,17 @@ export default defineComponent({
   transition: all 0.3s;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
+  gap: 5px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .refresh-btn {
   background: var(--primary-color);
   color: white;
-}
-
-.refresh-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
 }
 
 .auto-update-btn {
@@ -762,64 +620,70 @@ export default defineComponent({
   color: white;
 }
 
-.export-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.save-btn {
-  background: #2ecc71;
-  color: white;
-  font-size: 1rem;
-  padding: 10px 20px;
-}
-
-.refresh-btn:not(:disabled):hover, 
+.refresh-btn:hover:not(:disabled), 
 .auto-update-btn:hover, 
-.export-btn:not(:disabled):hover,
-.save-btn:hover {
+.export-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.refresh-icon, .auto-icon, .export-icon, .save-icon {
-  font-size: 1.1rem;
+/* Пустое состояние */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--secondary-text);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  opacity: 0.6;
+}
+
+.empty-state h3 {
+  margin-bottom: 15px;
+  color: var(--text-color);
+}
+
+.empty-state p {
+  max-width: 500px;
+  margin: 0 auto 30px;
+  line-height: 1.6;
+}
+
+.primary-btn {
+  background: var(--primary-color);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  display: inline-block;
 }
 
 /* Статистика */
 .summary-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 20px;
   margin-bottom: 25px;
 }
 
 .summary-card {
   background: var(--bg-color);
-  padding: 20px;
+  padding: 15px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   gap: 15px;
   transition: all 0.3s;
-  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .summary-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 15px var(--shadow-hover);
+  box-shadow: 0 6px 15px var(--shadow-hover);
 }
 
 .summary-icon {
   font-size: 1.5rem;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--card-bg);
-  border-radius: 50%;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .summary-info {
@@ -827,10 +691,9 @@ export default defineComponent({
 }
 
 .summary-value {
-  font-size: 1.6rem;
-  font-weight: 700;
+  font-size: 1.4rem;
+  font-weight: 600;
   color: var(--text-color);
-  margin-bottom: 5px;
 }
 
 .summary-label {
@@ -839,18 +702,11 @@ export default defineComponent({
 }
 
 /* Визуализация графиков */
-.charts-visualization, .priority-chart-wrapper {
+.charts-visualization {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 25px;
   margin-bottom: 30px;
-}
-
-.charts-visualization {
-  grid-template-columns: 1fr 1fr;
-}
-
-.priority-chart-wrapper {
-  grid-template-columns: 1fr;
 }
 
 .chart-wrapper {
@@ -858,13 +714,6 @@ export default defineComponent({
   border-radius: 10px;
   padding: 20px;
   height: auto;
-  box-shadow: 0 2px 8px var(--shadow-color);
-  transition: all 0.3s;
-}
-
-.chart-wrapper:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px var(--shadow-hover);
 }
 
 .chart-wrapper h3 {
@@ -873,76 +722,103 @@ export default defineComponent({
   color: var(--text-color);
   font-size: 1.1rem;
   text-align: center;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-color);
 }
 
-/* Сообщение об отсутствии данных */
-.no-data-message {
-  margin: 40px 0;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
+/* Стили таблицы */
+.data-table {
+  overflow-x: auto;
+  border-radius: 8px;
   background: var(--bg-color);
-  border-radius: 10px;
-  box-shadow: 0 2px 8px var(--shadow-color);
+  padding: 20px;
+  margin-top: 20px;
 }
 
-.empty-icon {
-  font-size: 3rem;
-  margin-bottom: 20px;
-  opacity: 0.6;
-  color: var(--secondary-text);
-}
-
-.empty-state h3 {
+.data-table h3 {
+  margin-top: 0;
   margin-bottom: 15px;
   color: var(--text-color);
-  font-size: 1.5rem;
 }
 
-.empty-state p {
-  max-width: 500px;
-  margin: 0 auto 30px;
-  line-height: 1.6;
-  color: var(--secondary-text);
+table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
 }
 
-.action-button {
-  display: inline-block;
-  padding: 10px 20px;
-  background: var(--primary-color);
-  color: white;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 500;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s;
+th, td {
+  padding: 12px 16px;
+  text-align: left;
 }
 
-.action-button:hover {
-  background: var(--primary-hover);
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
+th {
+  background: var(--card-bg);
+  color: var(--primary-color);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-.action-button:active {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(66, 185, 131, 0.2);
+tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
-.action-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.3);
+.even-row {
+  background-color: var(--bg-color);
 }
 
-.action-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+.odd-row {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.time-col {
+  min-width: 120px;
+}
+
+.load-col, .queue-col {
+  min-width: 150px;
+}
+
+.high-load {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.medium-load {
+  color: #f1c40f;
+  font-weight: 600;
+}
+
+.low-load {
+  color: #2ecc71;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .charts-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .charts-controls {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  
+  .btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+  
+  .summary-stats {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  
+  .charts-visualization {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
