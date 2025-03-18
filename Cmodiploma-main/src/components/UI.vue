@@ -1,11 +1,17 @@
 <template>
   <div class="system-controls">
-    <!-- Селектор типа системы -->
+    <!-- Selector de tipo de sistema -->
     <div class="selector-card">
       <div class="selector-header">
         <h3>Тип системы обслуживания</h3>
         <div class="selector-info">
-          <span class="info-icon" @click="showInfo = !showInfo">ℹ️</span>
+          <button class="info-icon" @click="showInfo = !showInfo" aria-label="Информация о типах систем">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </button>
         </div>
       </div>
       
@@ -14,8 +20,8 @@
           <h4>Типы систем массового обслуживания</h4>
           <p>Выберите тип СМО в зависимости от ваших задач моделирования:</p>
           <ul>
-            <li><strong>Стандартная (M/M/n/m)</strong> - классическая система с обслуживанием FIFO</li>
-            <li><strong>Приоритетная</strong> - обслуживание по приоритетам клиентов</li>
+            <li><strong>Стандартная (M/M/n/m)</strong> - классическая система с обслуживанием FIFO (первым пришел - первым обслужен)</li>
+            <li><strong>Приоритетная</strong> - обслуживание по приоритетам клиентов (высокий, средний, низкий)</li>
             <li><strong>LIFO</strong> - обслуживание в обратном порядке (последний пришел - первый обслужен)</li>
             <li><strong>Замкнутая</strong> - ограниченное количество клиентов, возвращающихся в систему</li>
           </ul>
@@ -30,7 +36,24 @@
           :class="['system-type-option', { 'active': selectedSystemType === type.id }]"
           @click="selectSystemType(type.id)"
         >
-          <div class="option-icon">{{ type.icon }}</div>
+          <div class="option-icon">
+            <svg v-if="type.id === 'standard'" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
+            </svg>
+            <svg v-else-if="type.id === 'priority'" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <svg v-else-if="type.id === 'lifo'" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="17 7 17 17 7 17"></polyline>
+              <polyline points="7 7 17 7 17 17"></polyline>
+            </svg>
+            <svg v-else-if="type.id === 'closed'" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </div>
           <div class="option-content">
             <div class="option-name">{{ type.name }}</div>
             <div class="option-description">{{ type.description }}</div>
@@ -39,58 +62,70 @@
       </div>
       
       <!-- Дополнительные настройки для выбранного типа -->
-      <div v-if="selectedSystemType === 'priority'" class="extra-options">
-        <h4>Настройки приоритетов</h4>
-        <div class="priority-settings">
-          <div class="setting-row">
-            <label>Доля высокоприоритетных клиентов:</label>
-            <div class="priority-slider">
-              <input type="range" v-model="prioritySettings.highPriorityRate" min="0" max="100" step="5" />
-              <span>{{ prioritySettings.highPriorityRate }}%</span>
+      <transition name="fade">
+        <div v-if="selectedSystemType === 'priority'" class="extra-options">
+          <h4>Настройки приоритетов</h4>
+          <div class="priority-settings">
+            <div class="setting-row">
+              <label>
+                <span class="priority-label high-priority">Высокий приоритет:</span>
+                <div class="priority-slider">
+                  <input type="range" v-model="prioritySettings.highPriorityRate" min="0" max="100" step="5" 
+                    @input="updatePrioritySettings" />
+                  <span>{{ prioritySettings.highPriorityRate }}%</span>
+                </div>
+              </label>
             </div>
-          </div>
-          <div class="setting-row">
-            <label>Доля среднеприоритетных клиентов:</label>
-            <div class="priority-slider">
-              <input type="range" v-model="prioritySettings.mediumPriorityRate" min="0" max="100" step="5" />
-              <span>{{ prioritySettings.mediumPriorityRate }}%</span>
+            <div class="setting-row">
+              <label>
+                <span class="priority-label medium-priority">Средний приоритет:</span>
+                <div class="priority-slider">
+                  <input type="range" v-model="prioritySettings.mediumPriorityRate" min="0" max="100" step="5" 
+                    @input="updatePrioritySettings" />
+                  <span>{{ prioritySettings.mediumPriorityRate }}%</span>
+                </div>
+              </label>
             </div>
-          </div>
-          <div class="setting-row">
-            <label>Доля низкоприоритетных клиентов:</label>
-            <div class="priority-slider">
-              <input 
-                type="range" 
-                :value="100 - prioritySettings.highPriorityRate - prioritySettings.mediumPriorityRate" 
-                disabled 
-              />
-              <span>{{ 100 - prioritySettings.highPriorityRate - prioritySettings.mediumPriorityRate }}%</span>
+            <div class="setting-row">
+              <label>
+                <span class="priority-label low-priority">Низкий приоритет:</span>
+                <div class="priority-slider">
+                  <input 
+                    type="range" 
+                    :value="lowPriorityRate" 
+                    disabled 
+                  />
+                  <span>{{ lowPriorityRate }}%</span>
+                </div>
+              </label>
             </div>
           </div>
         </div>
-      </div>
+      </transition>
       
-      <div v-if="selectedSystemType === 'closed'" class="extra-options">
-        <h4>Настройки замкнутой системы</h4>
-        <div class="closed-settings">
-          <div class="setting-row">
-            <label>Общее количество клиентов в системе:</label>
-            <div class="number-input">
-              <button @click="decrementCustomers" :disabled="closedSettings.totalCustomers <= 1" class="input-button">-</button>
-              <input type="number" v-model.number="closedSettings.totalCustomers" min="1" max="50" />
-              <button @click="incrementCustomers" :disabled="closedSettings.totalCustomers >= 50" class="input-button">+</button>
+      <transition name="fade">
+        <div v-if="selectedSystemType === 'closed'" class="extra-options">
+          <h4>Настройки замкнутой системы</h4>
+          <div class="closed-settings">
+            <div class="setting-row">
+              <label>Общее количество клиентов в системе:</label>
+              <div class="number-input">
+                <button @click="decrementCustomers" :disabled="closedSettings.totalCustomers <= 1 || isRunning" class="input-button">-</button>
+                <input type="number" v-model.number="closedSettings.totalCustomers" min="1" max="50" :disabled="isRunning" />
+                <button @click="incrementCustomers" :disabled="closedSettings.totalCustomers >= 50 || isRunning" class="input-button">+</button>
+              </div>
             </div>
-          </div>
-          <div class="setting-row">
-            <label>Время возврата клиента в систему (сек):</label>
-            <div class="number-input">
-              <button @click="decrementReturnTime" :disabled="closedSettings.returnTimeSeconds <= 1" class="input-button">-</button>
-              <input type="number" v-model.number="closedSettings.returnTimeSeconds" min="1" max="30" />
-              <button @click="incrementReturnTime" :disabled="closedSettings.returnTimeSeconds >= 30" class="input-button">+</button>
+            <div class="setting-row">
+              <label>Время возврата клиента в систему (сек):</label>
+              <div class="number-input">
+                <button @click="decrementReturnTime" :disabled="closedSettings.returnTimeSeconds <= 1 || isRunning" class="input-button">-</button>
+                <input type="number" v-model.number="closedSettings.returnTimeSeconds" min="1" max="30" :disabled="isRunning" />
+                <button @click="incrementReturnTime" :disabled="closedSettings.returnTimeSeconds >= 30 || isRunning" class="input-button">+</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </transition>
     </div>
 
     <!-- Настройки системы -->
@@ -99,36 +134,49 @@
       
       <div class="parameters-grid">
         <div class="parameter-item">
-          <label>Количество серверов:</label>
+          <label for="servers-input">Количество серверов:</label>
           <div class="number-input">
-            <button @click="decrementServers" :disabled="servers <= 1" class="input-button">-</button>
-            <input type="number" v-model.number="servers" min="1" max="10" />
-            <button @click="incrementServers" :disabled="servers >= 10" class="input-button">+</button>
+            <button @click="decrementServers" :disabled="servers <= 1 || isRunning" class="input-button">-</button>
+            <input id="servers-input" type="number" v-model.number="servers" min="1" max="10" :disabled="isRunning" />
+            <button @click="incrementServers" :disabled="servers >= 10 || isRunning" class="input-button">+</button>
           </div>
         </div>
         
         <div class="parameter-item">
-          <label>Максимальная длина очереди:</label>
+          <label for="queue-input">Максимальная длина очереди:</label>
           <div class="number-input">
-            <button @click="decrementQueue" :disabled="maxQueueLength <= 1" class="input-button">-</button>
-            <input type="number" v-model.number="maxQueueLength" min="1" max="50" />
-            <button @click="incrementQueue" :disabled="maxQueueLength >= 50" class="input-button">+</button>
+            <button @click="decrementQueue" :disabled="maxQueueLength <= 1 || isRunning" class="input-button">-</button>
+            <input id="queue-input" type="number" v-model.number="maxQueueLength" min="1" max="50" :disabled="isRunning" />
+            <button @click="incrementQueue" :disabled="maxQueueLength >= 50 || isRunning" class="input-button">+</button>
           </div>
         </div>
         
         <div class="parameter-item">
-          <label>Интенсивность прихода клиентов (%):</label>
+          <label for="arrival-input">Интенсивность прихода клиентов:</label>
           <div class="parameter-slider">
-            <input type="range" v-model.number="arrivalRatePercent" min="1" max="100" step="1" />
-            <span>{{ arrivalRatePercent }}%</span>
+            <input id="arrival-input" type="range" v-model.number="arrivalRatePercent" min="1" max="100" step="1" :disabled="isRunning" />
+            <span class="parameter-value">{{ arrivalRatePercent }}%</span>
           </div>
         </div>
         
         <div class="parameter-item">
-          <label>Интенсивность обслуживания (%):</label>
+          <label for="service-input">Интенсивность обслуживания:</label>
           <div class="parameter-slider">
-            <input type="range" v-model.number="serviceRatePercent" min="1" max="100" step="1" />
-            <span>{{ serviceRatePercent }}%</span>
+            <input id="service-input" type="range" v-model.number="serviceRatePercent" min="1" max="100" step="1" :disabled="isRunning" />
+            <span class="parameter-value">{{ serviceRatePercent }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="parameters-summary">
+        <div class="summary-item">
+          <div class="summary-label">Нагрузка системы (ρ):</div>
+          <div :class="['summary-value', getLoadClass(systemLoad)]">{{ systemLoad.toFixed(2) }}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Режим работы:</div>
+          <div :class="['summary-value', getLoadClass(systemLoad)]">
+            {{ systemLoad < 1 ? 'Недогрузка' : systemLoad === 1 ? 'Критическая нагрузка' : 'Перегрузка' }}
           </div>
         </div>
       </div>
@@ -140,6 +188,13 @@
         @click="toggleSimulation" 
         :class="['control-button', isRunning ? 'stop' : 'start']"
       >
+        <svg v-if="isRunning" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+        <svg v-else viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
         {{ isRunning ? 'Остановить' : 'Запустить' }} симуляцию
       </button>
       
@@ -148,6 +203,10 @@
         class="control-button reset"
         :disabled="isRunning"
       >
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v6h6"></path>
+          <path d="M3 13a9 9 0 1 0 3-7.7L3 8"></path>
+        </svg>
         Сбросить
       </button>
       
@@ -156,6 +215,11 @@
         class="control-button save"
         :disabled="isRunning || !hasResults"
       >
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
         Сохранить результаты
       </button>
     </div>
@@ -163,22 +227,28 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useQueueStore } from '../stores/queue';
+import { useChartStore } from '../stores/chart';
+import { EVENTS } from '../constants';
+import eventBus from '../utils/eventBus';
+import notificationService from '../services/notifications';
+import apiService from '../services/api';
 
 export default {
   name: 'SystemControls',
   
   setup() {
-    const store = useQueueStore();
+    const queueStore = useQueueStore();
+    const chartStore = useChartStore();
     const showInfo = ref(false);
     
     // Базовые настройки
-    const selectedSystemType = ref('standard');
-    const servers = ref(store.servers);
-    const maxQueueLength = ref(store.maxQueueLength);
-    const arrivalRatePercent = ref(store.arrivalRate * 100);
-    const serviceRatePercent = ref(store.serviceRate * 100);
+    const selectedSystemType = ref(queueStore.systemType || 'standard');
+    const servers = ref(queueStore.servers);
+    const maxQueueLength = ref(queueStore.maxQueueLength);
+    const arrivalRatePercent = ref(queueStore.arrivalRate * 100);
+    const serviceRatePercent = ref(queueStore.serviceRate * 100);
     
     // Настройки приоритетов
     const prioritySettings = ref({
@@ -193,10 +263,27 @@ export default {
     });
     
     // Вычисляемые свойства
-    const isRunning = computed(() => store.isRunning);
+    const isRunning = computed(() => queueStore.isRunning);
     
     const hasResults = computed(() => {
-      return store.statistics.totalCustomers > 0;
+      return queueStore.statistics.totalCustomers > 0;
+    });
+
+    const lowPriorityRate = computed(() => {
+      const highRate = prioritySettings.value.highPriorityRate;
+      const mediumRate = prioritySettings.value.mediumPriorityRate;
+      const lowRate = 100 - highRate - mediumRate;
+      return lowRate < 0 ? 0 : lowRate;
+    });
+    
+    const systemLoad = computed(() => {
+      // Расчет нагрузки ρ = λ/(μ*m), где λ - интенсивность входящего потока,
+      // μ - интенсивность обслуживания, m - количество каналов обслуживания
+      const lambda = arrivalRatePercent.value / 100;
+      const mu = serviceRatePercent.value / 100;
+      const m = servers.value;
+      
+      return lambda / (mu * m);
     });
     
     // Методы управления серверами
@@ -287,17 +374,40 @@ export default {
     ];
     
     const selectSystemType = (typeId) => {
+      if (isRunning.value) {
+        notificationService.warning('Нельзя изменить тип системы во время симуляции', 3000);
+        return;
+      }
+      
       selectedSystemType.value = typeId;
+      updateTypeSettings();
+    };
+    
+    // Определение класса для отображения нагрузки системы
+    const getLoadClass = (load) => {
+      if (load < 0.7) return 'low-load';
+      if (load < 1) return 'medium-load';
+      return 'high-load';
+    };
+
+    // Обновление настроек приоритета
+    const updatePrioritySettings = () => {
+      // Проверяем, чтобы сумма высокого и среднего приоритета не превышала 100%
+      const total = prioritySettings.value.highPriorityRate + prioritySettings.value.mediumPriorityRate;
+      if (total > 100) {
+        // Если превышает, уменьшаем последнее измененное значение
+        prioritySettings.value.mediumPriorityRate = 100 - prioritySettings.value.highPriorityRate;
+      }
       updateTypeSettings();
     };
     
     // Обновление настроек хранилища
     const updateStoreSettings = () => {
-      store.servers = servers.value;
-      store.maxQueueLength = maxQueueLength.value;
-      store.arrivalRate = arrivalRatePercent.value / 100;
-      store.serviceRate = serviceRatePercent.value / 100;
-      store.initialize();
+      queueStore.servers = servers.value;
+      queueStore.maxQueueLength = maxQueueLength.value;
+      queueStore.arrivalRate = arrivalRatePercent.value / 100;
+      queueStore.serviceRate = serviceRatePercent.value / 100;
+      queueStore.initialize();
     };
     
     const updateTypeSettings = () => {
@@ -308,7 +418,7 @@ export default {
           settings = {
             highPriorityRate: prioritySettings.value.highPriorityRate / 100,
             mediumPriorityRate: prioritySettings.value.mediumPriorityRate / 100,
-            lowPriorityRate: (100 - prioritySettings.value.highPriorityRate - prioritySettings.value.mediumPriorityRate) / 100
+            lowPriorityRate: lowPriorityRate.value / 100
           };
           break;
         case 'closed':
@@ -319,64 +429,99 @@ export default {
           break;
       }
       
-      store.setSystemType(selectedSystemType.value, settings);
+      queueStore.setSystemType(selectedSystemType.value, settings);
     };
     
     // Управление симуляцией
     const toggleSimulation = () => {
-      store.toggleSimulation();
+      if (!isRunning.value) {
+        // Проверка параметров перед запуском
+        if (systemLoad.value > 1.5) {
+          notificationService.warning('Система сильно перегружена! Рекомендуется увеличить количество серверов или скорость обслуживания.', 5000);
+        }
+        
+        // Запуск обновления графиков
+        chartStore.startUpdates();
+        eventBus.emit(EVENTS.SIMULATION_STARTED);
+      } else {
+        chartStore.stopUpdates();
+        eventBus.emit(EVENTS.SIMULATION_STOPPED);
+      }
+      
+      queueStore.toggleSimulation();
     };
     
     const resetSimulation = () => {
       if (!isRunning.value) {
-        store.resetStatistics();
-        store.initialize();
+        queueStore.resetStatistics();
+        chartStore.resetData();
+        queueStore.initialize();
+        notificationService.info('Симуляция сброшена', 2000);
       }
     };
     
     const saveResults = async () => {
       if (!isRunning.value && hasResults.value) {
         try {
-          const response = await fetch('http://localhost:3000/api/simulations', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+          const response = await apiService.saveSimulation({
+            parameters: {
+              servers: servers.value,
+              maxQueueLength: maxQueueLength.value,
+              arrivalRate: arrivalRatePercent.value / 100,
+              serviceRate: serviceRatePercent.value / 100,
+              systemType: selectedSystemType.value
             },
-            body: JSON.stringify({
-              parameters: {
-                servers: servers.value,
-                maxQueueLength: maxQueueLength.value,
-                arrivalRate: arrivalRatePercent.value / 100,
-                serviceRate: serviceRatePercent.value / 100,
-                systemType: selectedSystemType.value
-              },
-              statistics: store.statistics
-            })
+            statistics: queueStore.statistics
           });
           
-          if (response.ok) {
-            alert('Результаты успешно сохранены');
-          } else {
-            alert('Ошибка при сохранении результатов');
+          if (response) {
+            notificationService.success('Результаты успешно сохранены');
           }
         } catch (error) {
           console.error('Ошибка при отправке данных:', error);
-          alert('Ошибка соединения с сервером');
+          notificationService.error('Ошибка соединения с сервером');
         }
+      } else if (!hasResults.value) {
+        notificationService.warning('Нет данных для сохранения');
       }
     };
     
     // Отслеживание изменений параметров для обновления хранилища
     watch(arrivalRatePercent, () => {
-      store.arrivalRate = arrivalRatePercent.value / 100;
+      if (!isRunning.value) {
+        queueStore.arrivalRate = arrivalRatePercent.value / 100;
+      }
     });
     
     watch(serviceRatePercent, () => {
-      store.serviceRate = serviceRatePercent.value / 100;
+      if (!isRunning.value) {
+        queueStore.serviceRate = serviceRatePercent.value / 100;
+      }
     });
     
-    // Инициализация
-    updateStoreSettings();
+    // Загрузка настроек из хранилища при инициализации
+    onMounted(() => {
+      // Инициализация настроек из хранилища
+      if (queueStore.systemType === 'priority' && queueStore.systemSettings) {
+        prioritySettings.value.highPriorityRate = Math.round(queueStore.systemSettings.highPriorityRate * 100) || 20;
+        prioritySettings.value.mediumPriorityRate = Math.round(queueStore.systemSettings.mediumPriorityRate * 100) || 30;
+      } else if (queueStore.systemType === 'closed' && queueStore.systemSettings) {
+        closedSettings.value.totalCustomers = queueStore.systemSettings.totalCustomers || 10;
+        closedSettings.value.returnTimeSeconds = 
+          queueStore.systemSettings.customerReturnDelay 
+            ? Math.round(queueStore.systemSettings.customerReturnDelay / 1000) 
+            : 5;
+      }
+      
+      // Установка слушателей событий
+      eventBus.on(EVENTS.CUSTOMER_REJECTED, () => {
+        if (isRunning.value) {
+          notificationService.warning('Клиент отклонен: очередь заполнена', 2000);
+        }
+      });
+      
+      updateStoreSettings();
+    });
     
     return {
       showInfo,
@@ -389,8 +534,12 @@ export default {
       closedSettings,
       isRunning,
       hasResults,
+      lowPriorityRate,
+      systemLoad,
       systemTypes,
       selectSystemType,
+      getLoadClass,
+      updatePrioritySettings,
       incrementServers,
       decrementServers,
       incrementQueue,
@@ -433,14 +582,24 @@ export default {
 }
 
 .info-icon {
+  background: none;
+  border: none;
   cursor: pointer;
   font-size: 1.2rem;
   opacity: 0.7;
   transition: opacity 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
 }
 
 .info-icon:hover {
   opacity: 1;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .info-panel {
@@ -450,6 +609,12 @@ export default {
   margin-bottom: 20px;
   position: relative;
   border-left: 4px solid var(--primary-color);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .info-content h4 {
@@ -473,6 +638,11 @@ export default {
   padding: 5px 10px;
   cursor: pointer;
   margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.close-info:hover {
+  background-color: var(--primary-hover);
 }
 
 .system-types {
@@ -505,14 +675,14 @@ export default {
 }
 
 .option-icon {
-  font-size: 1.5rem;
-  width: 40px;
-  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 40px;
+  height: 40px;
   background: var(--card-bg);
   border-radius: 50%;
+  color: var(--primary-color);
 }
 
 .option-name {
@@ -531,97 +701,192 @@ export default {
   border-radius: 10px;
   padding: 20px;
   margin-top: 20px;
+  animation: slideDown 0.3s ease-in-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .extra-options h4 {
   margin-top: 0;
-  margin-bottom: 15px;
-  color: var(--text-color);
+  color: var(--primary-color);
 }
 
-.setting-row, .parameter-item {
+.priority-settings, .closed-settings {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.setting-row label, .parameter-item label {
-  flex: 1;
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.priority-label {
+  font-weight: 500;
   color: var(--text-color);
 }
 
-.priority-slider, .parameter-slider {
+.priority-label.high-priority {
+  color: var(--error-color);
+}
+
+.priority-label.medium-priority {
+  color: var(--warning-color);
+}
+
+.priority-label.low-priority {
+  color: var(--success-color);
+}
+
+.priority-slider {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 70%;
+}
+
+.priority-slider input[type="range"] {
   flex: 1;
 }
 
-.priority-slider input, .parameter-slider input {
-  flex: 1;
+.priority-slider span {
+  width: 40px;
+  text-align: right;
+  font-size: 0.9rem;
+  color: var(--secondary-text);
 }
 
 .number-input {
   display: flex;
   align-items: center;
-}
-
-.number-input button {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: var(--primary-color);
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.number-input button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  gap: 10px;
 }
 
 .number-input input {
   width: 60px;
   text-align: center;
-  margin: 0 10px;
   padding: 5px;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: 5px;
+  background: var(--card-bg);
+  color: var(--text-color);
+}
+
+.input-button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.input-button:hover {
+  background-color: var(--primary-hover);
+}
+
+.input-button:disabled {
+  background-color: var(--secondary-text);
+  cursor: not-allowed;
+}
+
+.system-parameters-card {
+  margin-top: 20px;
 }
 
 .parameters-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
+  margin-bottom: 20px;
+}
+
+.parameter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.parameter-item label {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.parameter-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.parameter-slider input[type="range"] {
+  flex: 1;
+}
+
+.parameter-value {
+  width: 40px;
+  text-align: right;
+  font-size: 0.9rem;
+  color: var(--secondary-text);
+}
+
+.parameters-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.summary-label {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.summary-value {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.summary-value.low-load {
+  color: var(--success-color);
+}
+
+.summary-value.medium-load {
+  color: var(--warning-color);
+}
+
+.summary-value.high-load {
+  color: var(--error-color);
 }
 
 .simulation-controls {
   display: flex;
+  justify-content: flex-end;
   gap: 15px;
-  margin-top: 30px;
+  margin-top: 20px;
 }
 
 .control-button {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex: 1;
-}
-
-.control-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  gap: 10px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
 }
 
 .control-button.start {
@@ -629,47 +894,87 @@ export default {
   color: white;
 }
 
+.control-button.start:hover {
+  background-color: var(--primary-hover);
+}
+
 .control-button.stop {
-  background: #e74c3c;
+  background: var(--error-color);
   color: white;
+}
+
+.control-button.stop:hover {
+  background-color: #dc3545;
 }
 
 .control-button.reset {
-  background: #f39c12;
+  background: var(--secondary-color);
   color: white;
+}
+
+.control-button.reset:hover {
+  background-color: #1c7ed6;
 }
 
 .control-button.save {
-  background: #3498db;
+  background: var(--accent-color);
   color: white;
 }
 
-.control-button:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+.control-button.save:hover {
+  background-color: #7c3aed;
 }
 
+.control-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Анимации */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Адаптивность */
 @media (max-width: 768px) {
   .system-types {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
-  
-  .setting-row, .parameter-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  
-  .priority-slider, .parameter-slider, .number-input {
-    width: 100%;
-  }
-  
+
   .parameters-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .simulation-controls {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .control-button {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .selector-card, .system-parameters-card {
+    padding: 15px;
+  }
+
+  .system-types {
+    grid-template-columns: 1fr;
+  }
+
+  .priority-slider {
+    width: 60%;
+  }
+
+  .number-input input {
+    width: 50px;
   }
 }
 </style>
