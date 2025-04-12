@@ -1,29 +1,16 @@
-const router = require('express').Router();
-const Simulation = require('../models/Simulation');
+const express = require('express');
+const router = express.Router();
+const SimulationController = require('../controllers/simulation');
+const auth = require('../middleware/auth');
+const rateLimiter = require('../middleware/rateLimiter');
 
-// Get all simulations
-router.get('/', async (req, res) => {
-    try {
-        const simulations = await Simulation.find();
-        res.json(simulations);
-    } catch (err) {
-        res.status(400).json('Error: ' + err);
-    }
-});
+// Публичные маршруты
+router.get('/', SimulationController.getAllSimulations);
+router.get('/:id', SimulationController.getSimulationById);
 
-// Add new simulation
-router.post('/', async (req, res) => {
-    const newSimulation = new Simulation({
-        parameters: req.body.parameters,
-        statistics: req.body.statistics
-    });
-
-    try {
-        const savedSimulation = await newSimulation.save();
-        res.json(savedSimulation);
-    } catch (err) {
-        res.status(400).json('Error: ' + err);
-    }
-});
+// Защищенные маршруты
+router.post('/', auth, rateLimiter, SimulationController.createSimulation);
+router.put('/:id', auth, SimulationController.updateSimulation);
+router.delete('/:id', auth, SimulationController.deleteSimulation);
 
 module.exports = router;

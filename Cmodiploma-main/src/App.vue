@@ -6,8 +6,8 @@
     <nav class="main-nav">
       <div class="nav-container">
         <div class="logo">
-          <img src="@/assets/logo.svg" alt="Logo" class="logo-img" />
-          <span>QueueSim</span>
+          
+          <span>СМО</span>
         </div>
         
         <div class="nav-links">
