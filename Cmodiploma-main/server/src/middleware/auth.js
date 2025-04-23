@@ -1,5 +1,4 @@
-"use strict";
-
+// middleware/auth.js
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'ваш_секретный_ключ';

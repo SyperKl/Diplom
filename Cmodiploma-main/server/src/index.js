@@ -1,11 +1,8 @@
-"use strict";
-
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-// Инициализируем приложение Express
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -13,30 +10,27 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Подключение к MongoDB
+// MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/queue_simulation', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
-.then(() => console.log('MongoDB успешно подключена'))
-.catch(err => console.error('Ошибка подключения к MongoDB:', err));
+.then(() => console.log('MongoDB database connection established successfully'))
+.catch(err => console.error('MongoDB connection error:', err));
 
-// Инициализация роутов - только после объявления app
+// Routes - импортировать после инициализации app
 const simulationsRouter = require('./routes/simulations');
 const authRoutes = require('./routes/auth');
 
-// Использование роутов
 app.use('/api/simulations', simulationsRouter);
 app.use('/api/auth', authRoutes);
 
-// Обработка ошибок
+// Global error handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ message: 'Что-то пошло не так!' });
-    next(); // Вызываем next для продолжения обработки
+    res.status(500).json({ message: 'Something went wrong!' });
 });
 
-// Запуск сервера
 app.listen(PORT, () => {
-    console.log(`Сервер запущен на порту: ${PORT}`);
+    console.log(`Server is running on port: ${PORT}`);
 });
