@@ -1,6 +1,10 @@
-// controllers/auth.js
+// Добавьте "use strict" в начало файла
+"use strict";
+
+// Правильно импортируйте модули
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'ваш_секретный_ключ';
 const JWT_EXPIRES_IN = '24h';
