@@ -1,16 +1,17 @@
+// routes/simulations.js
 const express = require('express');
 const router = express.Router();
 const SimulationController = require('../controllers/simulation');
 const auth = require('../middleware/auth');
-const rateLimiter = require('../middleware/rateLimiter');
+const { basicLimiter, strictLimiter } = require('../middleware/rateLimiter');
 
-// Публичные маршруты
-router.get('/', SimulationController.getAllSimulations);
-router.get('/:id', SimulationController.getSimulationById);
+// Публичные маршруты с базовым ограничением
+router.get('/', basicLimiter, SimulationController.getAllSimulations);
+router.get('/:id', basicLimiter, SimulationController.getSimulationById);
 
-// Защищенные маршруты
-router.post('/', auth, rateLimiter, SimulationController.createSimulation);
-router.put('/:id', auth, SimulationController.updateSimulation);
-router.delete('/:id', auth, SimulationController.deleteSimulation);
+// Защищенные маршруты со строгим ограничением
+router.post('/', auth, strictLimiter, SimulationController.createSimulation);
+router.put('/:id', auth, strictLimiter, SimulationController.updateSimulation);
+router.delete('/:id', auth, strictLimiter, SimulationController.deleteSimulation);
 
 module.exports = router;

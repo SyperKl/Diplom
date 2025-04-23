@@ -1,8 +1,4 @@
 import { API_URL } from '@/config'
-
-/**
- * API сервис для работы с backend
- */
 class ApiService {
   /**
    * Базовый URL API
