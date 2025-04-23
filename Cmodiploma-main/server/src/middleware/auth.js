@@ -1,9 +1,10 @@
 // middleware/auth.js
-const jwt = require('jsonwebtoken');
+import { verify } from 'jsonwebtoken';
 
+// eslint-disable-next-line no-undef
 const JWT_SECRET = process.env.JWT_SECRET || 'ваш_секретный_ключ';
 
-module.exports = (req, res, next) => {
+export default (req, res, next) => {
     // Получение токена из заголовка
     const authHeader = req.headers.authorization;
 
@@ -15,12 +16,13 @@ module.exports = (req, res, next) => {
 
     try {
         // Верификация токена
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = verify(token, JWT_SECRET);
 
         // Добавление пользователя в объект запроса
         req.user = decoded;
 
         next();
+    // eslint-disable-next-line no-unused-vars
     } catch (error) {
         return res.status(401).json({
             message: 'Недействительный токен или срок его действия истек'

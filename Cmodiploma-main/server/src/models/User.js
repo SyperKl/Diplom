@@ -1,8 +1,10 @@
-// models/User.js
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-const Schema = mongoose.Schema;
+// server/src/models/User.js
 
+// Правильно импортируем mongoose и bcrypt
+import { Schema, model } from 'mongoose';
+import { genSalt, hash, compare } from 'bcrypt';
+
+// Определяем схему пользователя, используя mongoose.Schema вместо просто Schema
 const userSchema = new Schema({
     username: {
         type: String,
@@ -29,8 +31,8 @@ userSchema.pre('save', async function(next) {
     if (!this.isModified('password')) return next();
 
     try {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
+        const salt = await genSalt(10);
+        this.password = await hash(this.password, salt);
         next();
     } catch (error) {
         next(error);
@@ -39,7 +41,8 @@ userSchema.pre('save', async function(next) {
 
 // Метод сравнения паролей
 userSchema.methods.comparePassword = async function(candidatePassword) {
-    return bcrypt.compare(candidatePassword, this.password);
+    return compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema);
+// Экспортируем модель
+export default model('User', userSchema);

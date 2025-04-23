@@ -1,17 +1,20 @@
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
+import express, { json } from 'express';
+import cors from 'cors';
+import { connect } from 'mongoose';
+// eslint-disable-next-line no-undef
 require('dotenv').config();
 
 const app = express();
+// eslint-disable-next-line no-undef
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(json());
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/queue_simulation', {
+// eslint-disable-next-line no-undef
+connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/queue_simulation', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
@@ -19,14 +22,14 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/queue_sim
 .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes - импортировать после инициализации app
-const simulationsRouter = require('./routes/simulations');
-const authRoutes = require('./routes/auth');
+import simulationsRouter from './routes/simulations';
+import authRoutes from './routes/auth';
 
 app.use('/api/simulations', simulationsRouter);
 app.use('/api/auth', authRoutes);
 
 // Global error handler
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
     console.error(err.stack);
     res.status(500).json({ message: 'Something went wrong!' });
 });

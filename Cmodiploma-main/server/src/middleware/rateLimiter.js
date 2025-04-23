@@ -1,5 +1,5 @@
 // middleware/rateLimiter.js
-const rateLimit = require('express-rate-limit');
+import rateLimit from 'express-rate-limit';
 
 // Базовый ограничитель
 const basicLimiter = rateLimit({
@@ -19,7 +19,7 @@ const strictLimiter = rateLimit({
     message: 'Превышен лимит запросов для этой операции'
 });
 
-module.exports = {
+export default {
     basicLimiter,
     strictLimiter
 };
