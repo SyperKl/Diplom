@@ -1,5 +1,7 @@
-import express, { json } from 'express';
-import cors from 'cors';
+// eslint-disable-next-line no-undef
+const express = require('express');
+// eslint-disable-next-line no-undef
+const cors = require('cors');
 import { connect } from 'mongoose';
 // eslint-disable-next-line no-undef
 require('dotenv').config();
@@ -10,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
+// eslint-disable-next-line no-undef
 app.use(json());
 
 // MongoDB connection

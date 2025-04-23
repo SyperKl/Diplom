@@ -6,4 +6,5 @@ import { register, login } from '../controllers/auth';
 router.post('/register', register);
 router.post('/login', login);
 
-export default router;
+// eslint-disable-next-line no-undef
+module.exports = router;
