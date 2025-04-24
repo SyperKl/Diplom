@@ -60,6 +60,7 @@
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { API_URL } from '../config';
+import notificationService from '../services/notifications';
 
 export default {
   name: 'RegisterView',
@@ -90,6 +91,8 @@ export default {
         loading.value = true;
         error.value = '';
 
+        console.log('Отправка запроса на регистрацию:', username.value);
+
         const response = await fetch(`${API_URL}/auth/register`, {
           method: 'POST',
           headers: {
@@ -101,20 +104,30 @@ export default {
           })
         });
 
+        console.log('Ответ получен, статус:', response.status);
+
         const data = await response.json();
+        console.log('Данные ответа:', data);
 
         if (!response.ok) {
           throw new Error(data.message || 'Ошибка при регистрации');
         }
 
-        // Save token to localStorage
+        // Сохранение токена и имени пользователя
         localStorage.setItem('token', data.token);
+        localStorage.setItem('username', username.value);
+        console.log('Токен и имя пользователя сохранены');
 
-        // Redirect to home page
-        router.push('/');
+        notificationService.success('Регистрация успешна!');
+
+        // Перенаправление на главную страницу с полной перезагрузкой
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 500);
       } catch (err) {
         error.value = err.message || 'Произошла ошибка при регистрации';
         console.error('Register error:', err);
+        notificationService.error(error.value);
       } finally {
         loading.value = false;
       }

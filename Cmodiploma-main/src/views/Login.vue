@@ -48,6 +48,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { API_URL } from '../config';
+import notificationService from '../services/notifications';
 
 export default {
   name: 'LoginView',
@@ -64,6 +65,8 @@ export default {
         loading.value = true;
         error.value = '';
 
+        console.log('Отправка запроса на вход:', username.value);
+
         const response = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
           headers: {
@@ -75,20 +78,30 @@ export default {
           })
         });
 
+        console.log('Ответ получен, статус:', response.status);
+
         const data = await response.json();
+        console.log('Данные ответа:', data);
 
         if (!response.ok) {
           throw new Error(data.message || 'Ошибка при входе');
         }
 
-        // Save token to localStorage
+        // Сохранение токена и имени пользователя
         localStorage.setItem('token', data.token);
+        localStorage.setItem('username', username.value);
+        console.log('Токен и имя пользователя сохранены');
 
-        // Redirect to home page
-        router.push('/');
+        notificationService.success('Вход выполнен успешно!');
+
+        // Перенаправление на главную страницу с полной перезагрузкой
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 500);
       } catch (err) {
         error.value = err.message || 'Произошла ошибка при входе';
         console.error('Login error:', err);
+        notificationService.error(error.value);
       } finally {
         loading.value = false;
       }

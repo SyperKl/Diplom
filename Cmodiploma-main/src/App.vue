@@ -6,7 +6,6 @@
     <nav class="main-nav">
       <div class="nav-container">
         <div class="logo">
-
           <span>СМО</span>
         </div>
 
@@ -25,15 +24,15 @@
           </router-link>
         </div>
         <div class="auth-buttons">
-  <template v-if="isAuthenticated">
-    <span class="welcome-text">Привет, {{ username || 'пользователь' }}!</span>
-    <button @click="logout" class="auth-button logout-btn">Выйти</button>
-  </template>
-  <template v-else>
-    <router-link to="/login" class="auth-button login-btn">Войти</router-link>
-    <router-link to="/register" class="auth-button register-btn">Регистрация</router-link>
-  </template>
-</div>
+          <template v-if="isAuthenticated">
+            <span class="welcome-text">Привет, {{ username || 'пользователь' }}!</span>
+            <button @click="logout" class="auth-button logout-btn">Выйти</button>
+          </template>
+          <template v-else>
+            <router-link to="/login" class="auth-button login-btn">Войти</router-link>
+            <router-link to="/register" class="auth-button register-btn">Регистрация</router-link>
+          </template>
+        </div>
 
         <button @click="toggleDarkMode" class="theme-toggle" :title="isDarkMode ? 'Переключить на светлую тему' : 'Переключить на темную тему'">
           <span class="mode-icon">{{ isDarkMode ? '☀️' : '🌙' }}</span>
@@ -73,10 +72,10 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { EVENTS } from '@/constants'
 import eventBus from '@/utils/eventBus'
 import notificationService from '@/services/notifications'
-import { useRouter } from 'vue-router';
 
 export default {
   name: 'App',
@@ -86,36 +85,32 @@ export default {
     const isAuthenticated = ref(false);
     const username = ref('');
     const router = useRouter();
-        const checkAuth = () => {
+
+    const checkAuth = () => {
       const token = localStorage.getItem('token');
+      const savedUsername = localStorage.getItem('username');
       console.log('Проверка аутентификации, токен:', token ? 'присутствует' : 'отсутствует');
 
       if (token) {
         isAuthenticated.value = true;
-        // Можно добавить проверку токена на сервере
+        username.value = savedUsername || '';
         return true;
       }
 
       isAuthenticated.value = false;
+      username.value = '';
       return false;
     };
 
     // Функция выхода
     const logout = () => {
       localStorage.removeItem('token');
+      localStorage.removeItem('username');
       isAuthenticated.value = false;
       username.value = '';
       router.push('/login');
+      notificationService.info('Вы вышли из системы');
     };
-
-    onMounted(() => {
-      checkAuth();
-    });
-
-
-
-
-
 
     const toggleDarkMode = () => {
       isDarkMode.value = !isDarkMode.value;
@@ -138,6 +133,12 @@ export default {
     };
 
     onMounted(() => {
+      const token = localStorage.getItem('token');
+  const currentPath = window.location.pathname;
+
+  if (!token && currentPath !== '/login' && currentPath !== '/register') {
+    router.push('/login');
+  }
       const savedMode = localStorage.getItem('darkMode');
       if (savedMode !== null) {
         isDarkMode.value = savedMode === 'true';
@@ -149,6 +150,7 @@ export default {
       }
 
       setupEventListeners();
+      checkAuth();
       notificationService.success('Приложение успешно загружено');
     });
 
@@ -360,6 +362,64 @@ body {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Auth buttons */
+.auth-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.welcome-text {
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.auth-button {
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.login-btn {
+  color: var(--primary-color);
+  background-color: transparent;
+  border: 1px solid var(--primary-color);
+}
+
+.login-btn:hover {
+  background-color: rgba(66, 185, 131, 0.1);
+  transform: translateY(-2px);
+}
+
+.register-btn {
+  color: white;
+  background-color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.register-btn:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.logout-btn {
+  color: white;
+  background-color: #e74c3c;
+  border: none;
+}
+
+.logout-btn:hover {
+  background-color: #c0392b;
+  transform: translateY(-2px);
+}
+
 /* Main content */
 .main-content {
   flex: 1;
@@ -439,71 +499,6 @@ body {
 .page-leave-to {
   opacity: 0;
   transform: translateY(-20px);
-}
-
-/* Уведомления */
-.notifications {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 10000;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.notification {
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-  background-color: var(--card-bg);
-  box-shadow: var(--shadow-md);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  animation: slideIn 0.3s ease-out;
-  transition: opacity var(--transition-fast), transform var(--transition-fast);
-}
-
-.notification.success {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.notification.info {
-  background-color: var(--secondary-color);
-  color: white;
-}
-
-.notification.warning {
-  background-color: var(--warning-color);
-  color: white;
-}
-
-.notification.error {
-  background-color: var(--error-color);
-  color: white;
-}
-
-.notification-close {
-  margin-left: auto;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity var(--transition-fast);
-}
-
-.notification-close:hover {
-  opacity: 1;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
 }
 
 /* Адаптивность */

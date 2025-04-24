@@ -11,3 +11,12 @@
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
+<script>
+  (function() {
+    const token = localStorage.getItem('token');
+    const path = window.location.pathname;
+    if (!token && path !== '/login' && path !== '/register') {
+      window.location.href = '/login';
+    }
+  })();
+</script>

@@ -39,22 +39,22 @@ class NotificationService {
    */
   add(message, type = NotificationType.INFO, timeout = 5000) {
     const id = `notification-${++this.counter}`;
-    
+
     const notification = {
       id,
       message,
       type,
       timeout
     };
-    
+
     this.state.notifications.push(notification);
-    
+
     if (timeout > 0) {
       setTimeout(() => {
         this.remove(id);
       }, timeout);
     }
-    
+
     return id;
   }
 

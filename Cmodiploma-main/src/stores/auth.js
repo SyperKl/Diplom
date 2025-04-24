@@ -34,6 +34,7 @@ export const useAuthStore = defineStore('auth', {
 
         this.token = data.token;
         localStorage.setItem('token', data.token);
+        localStorage.setItem('username', username);
 
         return true;
       } catch (error) {
@@ -64,6 +65,7 @@ export const useAuthStore = defineStore('auth', {
 
         this.token = data.token;
         localStorage.setItem('token', data.token);
+        localStorage.setItem('username', username);
 
         return true;
       } catch (error) {
@@ -78,6 +80,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = null;
       this.user = null;
       localStorage.removeItem('token');
+      localStorage.removeItem('username');
     }
   }
 });
