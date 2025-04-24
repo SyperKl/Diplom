@@ -9,7 +9,7 @@ exports.register = async (req, res) => {
         const { username, password } = req.body;
         console.log('Запрос на регистрацию:', { username });
 
-        // Проверка, существует ли пользователь
+
         const existingUser = await User.findOne({ username });
         if (existingUser) {
             console.log('Пользователь с таким именем уже существует');
@@ -18,12 +18,12 @@ exports.register = async (req, res) => {
             });
         }
 
-        // Создание нового пользователя
+
         const user = new User({ username, password });
         await user.save();
         console.log('Пользователь успешно создан');
 
-        // Создание токена
+
         const token = jwt.sign(
             { id: user._id, username: user.username, role: user.role },
             JWT_SECRET,
@@ -47,14 +47,14 @@ exports.login = async (req, res) => {
         const { username, password } = req.body;
         console.log('Попытка входа:', { username });
 
-        // Поиск пользователя
+
         const user = await User.findOne({ username });
         if (!user) {
             console.log('Пользователь не найден');
             return res.status(401).json({ message: 'Неверное имя пользователя или пароль' });
         }
 
-        // Проверка пароля
+
         const isPasswordValid = await user.comparePassword(password);
         if (!isPasswordValid) {
             console.log('Неверный пароль');

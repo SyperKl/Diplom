@@ -1,7 +1,7 @@
 import { reactive } from 'vue';
 
 /**
- * Типы уведомлений
+ *
  * @enum {string}
  */
 export const NotificationType = {
@@ -12,15 +12,15 @@ export const NotificationType = {
 };
 
 /**
- * Сервис уведомлений для приложения
+ *
  */
 class NotificationService {
   /**
    * @typedef {Object} Notification
-   * @property {string} id Уникальный идентификатор
-   * @property {string} message Текст уведомления
-   * @property {NotificationType} type Тип уведомления
-   * @property {number} timeout Время отображения в мс
+   * @property {string} id
+   * @property {string} message
+   * @property {NotificationType} type
+   * @property {number} timeout
    */
 
   constructor() {
@@ -31,11 +31,11 @@ class NotificationService {
   }
 
   /**
-   * Добавление уведомления
-   * @param {string} message Текст уведомления
-   * @param {NotificationType} type Тип уведомления
-   * @param {number} timeout Время отображения в мс (0 - не скрывать)
-   * @returns {string} ID уведомления
+   *
+   * @param {string} message
+   * @param {NotificationType} type
+   * @param {number} timeout
+   * @returns {string}
    */
   add(message, type = NotificationType.INFO, timeout = 5000) {
     const id = `notification-${++this.counter}`;
@@ -59,8 +59,8 @@ class NotificationService {
   }
 
   /**
-   * Удаление уведомления по ID
-   * @param {string} id ID уведомления
+   *
+   * @param {string} id
    */
   remove(id) {
     const index = this.state.notifications.findIndex(n => n.id === id);
@@ -70,52 +70,52 @@ class NotificationService {
   }
 
   /**
-   * Удаление всех уведомлений
+   *
    */
   clear() {
     this.state.notifications = [];
   }
 
   /**
-   * Добавление успешного уведомления
-   * @param {string} message Текст уведомления
-   * @param {number} timeout Время отображения в мс
-   * @returns {string} ID уведомления
+   *
+   * @param {string} message
+   * @param {number} timeout
+   * @returns {string}
    */
   success(message, timeout = 5000) {
     return this.add(message, NotificationType.SUCCESS, timeout);
   }
 
   /**
-   * Добавление уведомления об ошибке
-   * @param {string} message Текст уведомления
-   * @param {number} timeout Время отображения в мс
-   * @returns {string} ID уведомления
+   *
+   * @param {string} message
+   * @param {number} timeout
+   * @returns {string}
    */
   error(message, timeout = 7000) {
     return this.add(message, NotificationType.ERROR, timeout);
   }
 
   /**
-   * Добавление предупреждения
-   * @param {string} message Текст уведомления
-   * @param {number} timeout Время отображения в мс
-   * @returns {string} ID уведомления
+   *
+   * @param {string} message
+   * @param {number} timeout
+   * @returns {string}
    */
   warning(message, timeout = 6000) {
     return this.add(message, NotificationType.WARNING, timeout);
   }
 
   /**
-   * Добавление информационного уведомления
-   * @param {string} message Текст уведомления
-   * @param {number} timeout Время отображения в мс
-   * @returns {string} ID уведомления
+   *
+   * @param {string} message
+   * @param {number} timeout
+   * @returns {string}
    */
   info(message, timeout = 5000) {
     return this.add(message, NotificationType.INFO, timeout);
   }
 }
 
-// Экспортируем синглтон
+
 export default new NotificationService();

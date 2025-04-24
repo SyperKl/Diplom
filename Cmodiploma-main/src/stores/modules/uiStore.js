@@ -4,15 +4,15 @@
 
 /**
  * @typedef {Object} SystemTypeOption
- * @property {SystemType} id - System type ID
- * @property {string} name - Display name
- * @property {string} description - Brief description
- * @property {string} icon - Emoji icon
+ * @property {SystemType} id
+ * @property {string} name
+ * @property {string} description
+ * @property {string} icon
  */
 
 /**
  * @typedef {Object} ThemeSettings
- * @property {boolean} isDarkMode - Is dark mode active
+ * @property {boolean} isDarkMode
  */
 
 import { defineStore } from 'pinia';
@@ -23,14 +23,14 @@ export const useUiStore = defineStore('ui', {
     theme: {
       isDarkMode: false
     },
-    
-    /** @type {boolean} - Is help info panel visible */
+
+    /** @type {boolean}  */
     showHelp: false,
-    
-    /** @type {SystemType} - Selected system type */
+
+    /** @type {SystemType}  */
     selectedSystemType: 'standard',
-    
-    /** @type {Array<SystemTypeOption>} - Available system types */
+
+    /** @type {Array<SystemTypeOption>}  */
     systemTypes: [
       {
         id: 'standard',
@@ -57,42 +57,42 @@ export const useUiStore = defineStore('ui', {
         icon: '🔄'
       }
     ],
-    
-    /** @type {Object} - Priority system settings */
+
+    /** @type {Object}  */
     prioritySettings: {
       highPriorityRate: 20,
       mediumPriorityRate: 30
     },
-    
-    /** @type {Object} - Closed system settings */
+
+    /** @type {Object}  */
     closedSettings: {
       totalCustomers: 10,
       returnTimeSeconds: 5
     },
-    
-    /** @type {boolean} - Is auto-update active for charts */
+
+    /** @type {boolean}  */
     chartsAutoUpdate: false
   }),
-  
+
   getters: {
     /**
-     * Get selected system type information
+     *
      * @returns {SystemTypeOption}
      */
     selectedSystemTypeInfo: (state) => {
       return state.systemTypes.find(type => type.id === state.selectedSystemType) || state.systemTypes[0];
     },
-    
+
     /**
-     * Calculate low priority rate from high and medium
+     *
      * @returns {number}
      */
     lowPriorityRate: (state) => {
       return 100 - state.prioritySettings.highPriorityRate - state.prioritySettings.mediumPriorityRate;
     },
-    
+
     /**
-     * Get current priority settings in decimal format
+     *
      * @returns {Object}
      */
     normalizedPrioritySettings: (state) => ({
@@ -100,61 +100,59 @@ export const useUiStore = defineStore('ui', {
       mediumPriorityRate: state.prioritySettings.mediumPriorityRate / 100,
       lowPriorityRate: (100 - state.prioritySettings.highPriorityRate - state.prioritySettings.mediumPriorityRate) / 100
     }),
-    
+
     /**
-     * Get current closed system settings with proper units
+     *
      * @returns {Object}
      */
     normalizedClosedSettings: (state) => ({
       totalCustomers: state.closedSettings.totalCustomers,
-      customerReturnDelay: state.closedSettings.returnTimeSeconds * 1000 // convert to ms
+      customerReturnDelay: state.closedSettings.returnTimeSeconds * 1000
     })
   },
-  
+
   actions: {
     /**
-     * Toggle dark mode
-     * @returns {boolean} New dark mode state
+     *
+     * @returns {boolean}
      */
     toggleDarkMode() {
       this.theme.isDarkMode = !this.theme.isDarkMode;
-      
-      // Update document element class for CSS
+
+
       document.documentElement.classList.toggle('dark-theme', this.theme.isDarkMode);
-      
-      // Save preference to local storage
+
+
       localStorage.setItem('darkMode', this.theme.isDarkMode);
-      
+
       return this.theme.isDarkMode;
     },
-    
+
     /**
-     * Load theme settings from localStorage
+     *
      */
     loadThemeSettings() {
       const savedMode = localStorage.getItem('darkMode');
-      
+
       if (savedMode !== null) {
         this.theme.isDarkMode = savedMode === 'true';
       } else {
-        // Check system preference
+
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         this.theme.isDarkMode = prefersDark;
       }
-      
-      // Apply theme
+
+
       document.documentElement.classList.toggle('dark-theme', this.theme.isDarkMode);
     },
-    
-    /**
-     * Toggle help information visibility
-     */
+
+
     toggleHelp() {
       this.showHelp = !this.showHelp;
     },
-    
+
     /**
-     * Select system type
+     *
      * @param {SystemType} typeId - System type to select
      */
     selectSystemType(typeId) {
@@ -162,56 +160,56 @@ export const useUiStore = defineStore('ui', {
         this.selectedSystemType = typeId;
       }
     },
-    
+
     /**
-     * Update priority settings
-     * @param {Object} settings - New settings
+     *
+     * @param {Object} settings
      */
     updatePrioritySettings(settings) {
-      // Ensure values stay within valid range
+
       if (settings.highPriorityRate !== undefined) {
         settings.highPriorityRate = Math.min(100, Math.max(0, settings.highPriorityRate));
       }
-      
+
       if (settings.mediumPriorityRate !== undefined) {
         settings.mediumPriorityRate = Math.min(100, Math.max(0, settings.mediumPriorityRate));
       }
-      
-      // Ensure total doesn't exceed 100%
-      const total = (settings.highPriorityRate || this.prioritySettings.highPriorityRate) + 
+
+
+      const total = (settings.highPriorityRate || this.prioritySettings.highPriorityRate) +
                     (settings.mediumPriorityRate || this.prioritySettings.mediumPriorityRate);
-      
+
       if (total > 100) {
-        // Adjust medium priority rate if total exceeds 100%
+
         if (settings.mediumPriorityRate !== undefined) {
           settings.mediumPriorityRate = Math.max(0, 100 - (settings.highPriorityRate || this.prioritySettings.highPriorityRate));
         } else if (settings.highPriorityRate !== undefined) {
           settings.highPriorityRate = Math.max(0, 100 - this.prioritySettings.mediumPriorityRate);
         }
       }
-      
+
       this.prioritySettings = { ...this.prioritySettings, ...settings };
     },
-    
+
     /**
-     * Update closed system settings
-     * @param {Object} settings - New settings
+     *
+     * @param {Object} settings
      */
     updateClosedSettings(settings) {
       if (settings.totalCustomers !== undefined) {
         settings.totalCustomers = Math.min(50, Math.max(1, settings.totalCustomers));
       }
-      
+
       if (settings.returnTimeSeconds !== undefined) {
         settings.returnTimeSeconds = Math.min(30, Math.max(1, settings.returnTimeSeconds));
       }
-      
+
       this.closedSettings = { ...this.closedSettings, ...settings };
     },
-    
+
     /**
-     * Toggle charts auto-update
-     * @returns {boolean} New auto-update state
+     *
+     * @returns {boolean}
      */
     toggleChartsAutoUpdate() {
       this.chartsAutoUpdate = !this.chartsAutoUpdate;

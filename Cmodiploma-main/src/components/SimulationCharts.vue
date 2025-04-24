@@ -1,6 +1,6 @@
 <template>
   <div class="charts-container">
-    <!-- График загрузки серверов -->
+
     <div class="chart">
       <h3>Загрузка серверов</h3>
       <apex-chart
@@ -11,7 +11,7 @@
       />
     </div>
 
-    <!-- График длины очереди -->
+
     <div class="chart">
       <h3>Длина очереди</h3>
       <apex-chart

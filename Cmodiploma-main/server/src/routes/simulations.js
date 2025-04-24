@@ -9,7 +9,7 @@ router.get('/', basicLimiter, SimulationController.getAllSimulations);
 router.get('/:id', basicLimiter, SimulationController.getSimulationById);
 
 // Защищенные маршруты со строгим ограничением
-router.post('/', auth, strictLimiter, SimulationController.createSimulation);
+router.post('/', auth, SimulationController.createSimulation);
 router.put('/:id', auth, strictLimiter, SimulationController.updateSimulation);
 router.delete('/:id', auth, strictLimiter, SimulationController.deleteSimulation);
 

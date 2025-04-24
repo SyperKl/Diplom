@@ -25,7 +25,7 @@
           <div class="summary-label">Средняя загрузка</div>
         </div>
       </div>
-      
+
       <div class="summary-card">
         <div class="summary-icon">⬆️</div>
         <div class="summary-info">
@@ -33,7 +33,7 @@
           <div class="summary-label">Максимальная загрузка</div>
         </div>
       </div>
-      
+
       <div class="summary-card">
         <div class="summary-icon">📝</div>
         <div class="summary-info">
@@ -41,7 +41,7 @@
           <div class="summary-label">Средняя длина очереди</div>
         </div>
       </div>
-      
+
       <div class="summary-card">
         <div class="summary-icon">📈</div>
         <div class="summary-info">
@@ -68,7 +68,7 @@
           :series="serverLoadSeries"
         ></apexchart>
       </div>
-      
+
       <div class="chart-wrapper">
         <h3>Длина очереди</h3>
         <apexchart
@@ -78,8 +78,6 @@
           :series="queueLengthSeries"
         ></apexchart>
       </div>
-
-      <!-- Опциональный график для приоритетной очереди -->
       <div class="chart-wrapper" v-if="showPriorityChart">
         <h3>Обслужено клиентов по приоритетам</h3>
         <apexchart
@@ -102,8 +100,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(timestamp, index) in store.history.timestamps.slice().reverse()" 
-              :key="index" 
+          <tr v-for="(timestamp, index) in store.history.timestamps.slice().reverse()"
+              :key="index"
               :class="[index % 2 === 0 ? 'even-row' : 'odd-row']">
             <td>{{ formatTime(timestamp) }}</td>
             <td :class="getLoadClass(index)">
@@ -123,73 +121,61 @@ import { useQueueStore } from '../stores/queue';
 
 export default defineComponent({
   name: 'ChartsComponent',
-  
+
   setup() {
     const store = useQueueStore();
     const autoUpdate = ref(false);
     const updateTimer = ref(null);
-    
-    // Определяем, показывать ли график приоритетов
     const showPriorityChart = computed(() => {
-      return store.systemType === 'priority' && 
+      return store.systemType === 'priority' &&
              store.history.highPriorityServed.length > 0;
     });
-    
-    // Вычисление индекса в обратном порядке
     const reverseIndex = (index) => {
       return store.history.timestamps.length - 1 - index;
     };
-    
-    // Форматирование времени
     const formatTime = (timestamp) => {
       const date = new Date(timestamp);
       return date.toLocaleTimeString();
     };
-    
-    // Получение класса для ячейки с загрузкой
     const getLoadClass = (index) => {
       const actualIndex = reverseIndex(index);
       const load = store.history.serverUtilization[actualIndex] * 100;
-      
+
       if (load >= 90) return 'high-load';
       if (load >= 50) return 'medium-load';
       return 'low-load';
     };
-    
-    // Вычисляемые свойства для статистики
     const avgServerLoad = computed(() => {
       if (store.history.serverUtilization.length === 0) return 0;
-      
+
       const sum = store.history.serverUtilization.reduce((acc, val) => acc + val, 0);
       return (sum / store.history.serverUtilization.length * 100).toFixed(1);
     });
-    
+
     const maxServerLoad = computed(() => {
       if (store.history.serverUtilization.length === 0) return 0;
-      
+
       const max = Math.max(...store.history.serverUtilization);
       return (max * 100).toFixed(1);
     });
-    
+
     const avgQueueLength = computed(() => {
       if (store.history.queueLength.length === 0) return 0;
-      
+
       const sum = store.history.queueLength.reduce((acc, val) => acc + val, 0);
       return (sum / store.history.queueLength.length).toFixed(1);
     });
-    
+
     const dataPoints = computed(() => {
       return store.history.timestamps.length;
     });
-    
-    // Данные и опции для графика загрузки серверов с ApexCharts
     const serverLoadSeries = computed(() => {
       return [{
         name: 'Загрузка серверов (%)',
         data: store.history.serverUtilization.map(val => parseFloat((val * 100).toFixed(1)))
       }];
     });
-    
+
     const serverLoadOptions = computed(() => {
       return {
         chart: {
@@ -272,15 +258,13 @@ export default defineComponent({
         }
       };
     });
-    
-    // Данные и опции для графика длины очереди с ApexCharts
     const queueLengthSeries = computed(() => {
       return [{
         name: 'Длина очереди',
         data: store.history.queueLength
       }];
     });
-    
+
     const queueLengthOptions = computed(() => {
       return {
         chart: {
@@ -362,11 +346,9 @@ export default defineComponent({
         }
       };
     });
-    
-    // Данные и опции для графика приоритетов
     const priorityChartSeries = computed(() => {
       if (!showPriorityChart.value) return [];
-      
+
       return [
         {
           name: 'Высокий приоритет',
@@ -382,7 +364,7 @@ export default defineComponent({
         }
       ];
     });
-    
+
     const priorityChartOptions = computed(() => {
       return {
         chart: {
@@ -439,26 +421,19 @@ export default defineComponent({
         }
       };
     });
-    
-    // Обновление данных
     const refreshData = () => {
       store.addChartDataPoint();
     };
-    
-    // Переключение автоматического обновления
     const autoUpdateToggle = () => {
-      // Если симуляция не запущена, и пользователь пытается включить автообновление
       if (!store.isRunning && !autoUpdate.value) {
         alert('Сначала запустите симуляцию!');
         return;
       }
-      
+
       autoUpdate.value = !autoUpdate.value;
-      
+
       if (autoUpdate.value) {
-        // Запуск автообновления каждые 3 секунды
         updateTimer.value = setInterval(() => {
-          // Проверяем состояние симуляции перед каждым обновлением
           if (!store.isRunning) {
             autoUpdate.value = false;
             if (updateTimer.value) {
@@ -467,52 +442,39 @@ export default defineComponent({
             }
             return;
           }
-          
+
           refreshData();
         }, 3000);
       } else {
-        // Остановка автообновления
         if (updateTimer.value) {
           clearInterval(updateTimer.value);
           updateTimer.value = null;
         }
       }
     };
-    
-    // Экспорт данных в CSV
     const exportData = () => {
       if (store.history.timestamps.length === 0) {
         alert('Нет данных для экспорта');
         return;
       }
-      
-      // Формирование CSV данных
       let csvContent = 'data:text/csv;charset=utf-8,';
       csvContent += 'Время,Загрузка серверов (%),Длина очереди\n';
-      
+
       for (let i = 0; i < store.history.timestamps.length; i++) {
         const time = formatTime(store.history.timestamps[i]);
         const load = (store.history.serverUtilization[i] * 100).toFixed(1);
         const queue = store.history.queueLength[i];
-        
+
         csvContent += `${time},${load},${queue}\n`;
       }
-      
-      // Создание ссылки для скачивания
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
       link.setAttribute('download', `smo-stats-${new Date().toISOString().slice(0, 19)}.csv`);
       document.body.appendChild(link);
-      
-      // Скачивание
       link.click();
-      
-      // Удаление ссылки
       document.body.removeChild(link);
     };
-    
-    // Отслеживаем изменение состояния симуляции
     watch(() => store.isRunning, (isRunning) => {
       if (!isRunning && autoUpdate.value) {
         autoUpdate.value = false;
@@ -522,14 +484,12 @@ export default defineComponent({
         }
       }
     });
-    
-    // Очистка при размонтировании компонента
     onUnmounted(() => {
       if (updateTimer.value) {
         clearInterval(updateTimer.value);
       }
     });
-    
+
     return {
       store,
       autoUpdate,
@@ -544,7 +504,7 @@ export default defineComponent({
       maxServerLoad,
       avgQueueLength,
       dataPoints,
-      // ApexCharts
+
       serverLoadSeries,
       serverLoadOptions,
       queueLengthSeries,
@@ -620,14 +580,12 @@ export default defineComponent({
   color: white;
 }
 
-.refresh-btn:hover:not(:disabled), 
-.auto-update-btn:hover, 
+.refresh-btn:hover:not(:disabled),
+.auto-update-btn:hover,
 .export-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
-
-/* Пустое состояние */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -658,8 +616,6 @@ export default defineComponent({
   border-radius: 8px;
   display: inline-block;
 }
-
-/* Статистика */
 .summary-stats {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -700,8 +656,6 @@ export default defineComponent({
   font-size: 0.9rem;
   color: var(--secondary-text);
 }
-
-/* Визуализация графиков */
 .charts-visualization {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -724,7 +678,6 @@ export default defineComponent({
   text-align: center;
 }
 
-/* Стили таблицы */
 .data-table {
   overflow-x: auto;
   border-radius: 8px;
@@ -800,23 +753,23 @@ tr:hover {
     align-items: flex-start;
     gap: 15px;
   }
-  
+
   .charts-controls {
     width: 100%;
     justify-content: space-between;
     flex-wrap: wrap;
   }
-  
+
   .btn {
     flex: 1;
     min-width: 120px;
     justify-content: center;
   }
-  
+
   .summary-stats {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
-  
+
   .charts-visualization {
     grid-template-columns: 1fr;
   }

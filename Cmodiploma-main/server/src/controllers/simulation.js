@@ -1,6 +1,6 @@
 const Simulation = require('../models/Simulation');
 
-// Получение всех симуляций
+
 exports.getAllSimulations = async (req, res) => {
     try {
         const simulations = await Simulation.find();
@@ -10,7 +10,7 @@ exports.getAllSimulations = async (req, res) => {
     }
 };
 
-// Получение одной симуляции по ID
+
 exports.getSimulationById = async (req, res) => {
     try {
         const simulation = await Simulation.findById(req.params.id);
@@ -25,7 +25,7 @@ exports.getSimulationById = async (req, res) => {
     }
 };
 
-// Создание новой симуляции
+
 exports.createSimulation = async (req, res) => {
     try {
         const newSimulation = new Simulation({
@@ -40,7 +40,7 @@ exports.createSimulation = async (req, res) => {
     }
 };
 
-// Обновление симуляции
+
 exports.updateSimulation = async (req, res) => {
     try {
         const simulation = await Simulation.findByIdAndUpdate(
@@ -59,7 +59,7 @@ exports.updateSimulation = async (req, res) => {
     }
 };
 
-// Удаление симуляции
+
 exports.deleteSimulation = async (req, res) => {
     try {
         const simulation = await Simulation.findByIdAndDelete(req.params.id);

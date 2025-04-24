@@ -1,6 +1,6 @@
 <template>
   <div class="system-controls">
-    <!-- Selector de tipo de sistema -->
+
     <div class="selector-card">
       <div class="selector-header">
         <h3>Тип системы обслуживания</h3>
@@ -14,7 +14,7 @@
           </button>
         </div>
       </div>
-      
+
       <div v-if="showInfo" class="info-panel">
         <div class="info-content">
           <h4>Типы систем массового обслуживания</h4>
@@ -28,10 +28,10 @@
           <button class="close-info" @click="showInfo = false">Закрыть</button>
         </div>
       </div>
-      
+
       <div class="system-types">
-        <div 
-          v-for="type in systemTypes" 
+        <div
+          v-for="type in systemTypes"
           :key="type.id"
           :class="['system-type-option', { 'active': selectedSystemType === type.id }]"
           @click="selectSystemType(type.id)"
@@ -60,8 +60,8 @@
           </div>
         </div>
       </div>
-      
-      <!-- Дополнительные настройки для выбранного типа -->
+
+
       <transition name="fade">
         <div v-if="selectedSystemType === 'priority'" class="extra-options">
           <h4>Настройки приоритетов</h4>
@@ -70,7 +70,7 @@
               <label>
                 <span class="priority-label high-priority">Высокий приоритет:</span>
                 <div class="priority-slider">
-                  <input type="range" v-model="prioritySettings.highPriorityRate" min="0" max="100" step="5" 
+                  <input type="range" v-model="prioritySettings.highPriorityRate" min="0" max="100" step="5"
                     @input="updatePrioritySettings" />
                   <span>{{ prioritySettings.highPriorityRate }}%</span>
                 </div>
@@ -80,7 +80,7 @@
               <label>
                 <span class="priority-label medium-priority">Средний приоритет:</span>
                 <div class="priority-slider">
-                  <input type="range" v-model="prioritySettings.mediumPriorityRate" min="0" max="100" step="5" 
+                  <input type="range" v-model="prioritySettings.mediumPriorityRate" min="0" max="100" step="5"
                     @input="updatePrioritySettings" />
                   <span>{{ prioritySettings.mediumPriorityRate }}%</span>
                 </div>
@@ -90,10 +90,10 @@
               <label>
                 <span class="priority-label low-priority">Низкий приоритет:</span>
                 <div class="priority-slider">
-                  <input 
-                    type="range" 
-                    :value="lowPriorityRate" 
-                    disabled 
+                  <input
+                    type="range"
+                    :value="lowPriorityRate"
+                    disabled
                   />
                   <span>{{ lowPriorityRate }}%</span>
                 </div>
@@ -102,7 +102,7 @@
           </div>
         </div>
       </transition>
-      
+
       <transition name="fade">
         <div v-if="selectedSystemType === 'closed'" class="extra-options">
           <h4>Настройки замкнутой системы</h4>
@@ -128,10 +128,10 @@
       </transition>
     </div>
 
-    <!-- Настройки системы -->
+
     <div class="system-parameters-card">
       <h3>Параметры системы</h3>
-      
+
       <div class="parameters-grid">
         <div class="parameter-item">
           <label for="servers-input">Количество серверов:</label>
@@ -141,7 +141,7 @@
             <button @click="incrementServers" :disabled="servers >= 10 || isRunning" class="input-button">+</button>
           </div>
         </div>
-        
+
         <div class="parameter-item">
           <label for="queue-input">Максимальная длина очереди:</label>
           <div class="number-input">
@@ -150,7 +150,7 @@
             <button @click="incrementQueue" :disabled="maxQueueLength >= 50 || isRunning" class="input-button">+</button>
           </div>
         </div>
-        
+
         <div class="parameter-item">
           <label for="arrival-input">Интенсивность прихода клиентов:</label>
           <div class="parameter-slider">
@@ -158,7 +158,7 @@
             <span class="parameter-value">{{ arrivalRatePercent }}%</span>
           </div>
         </div>
-        
+
         <div class="parameter-item">
           <label for="service-input">Интенсивность обслуживания:</label>
           <div class="parameter-slider">
@@ -181,11 +181,9 @@
         </div>
       </div>
     </div>
-
-    <!-- Управление симуляцией -->
     <div class="simulation-controls">
-      <button 
-        @click="toggleSimulation" 
+      <button
+        @click="toggleSimulation"
         :class="['control-button', isRunning ? 'stop' : 'start']"
       >
         <svg v-if="isRunning" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -197,9 +195,9 @@
         </svg>
         {{ isRunning ? 'Остановить' : 'Запустить' }} симуляцию
       </button>
-      
-      <button 
-        @click="resetSimulation" 
+
+      <button
+        @click="resetSimulation"
         class="control-button reset"
         :disabled="isRunning"
       >
@@ -209,9 +207,9 @@
         </svg>
         Сбросить
       </button>
-      
-      <button 
-        @click="saveResults" 
+
+      <button
+        @click="saveResults"
         class="control-button save"
         :disabled="isRunning || !hasResults"
       >
@@ -237,34 +235,34 @@ import apiService from '../services/api';
 
 export default {
   name: 'SystemControls',
-  
+
   setup() {
     const queueStore = useQueueStore();
     const chartStore = useChartStore();
     const showInfo = ref(false);
-    
-    // Базовые настройки
+
+
     const selectedSystemType = ref(queueStore.systemType || 'standard');
     const servers = ref(queueStore.servers);
     const maxQueueLength = ref(queueStore.maxQueueLength);
     const arrivalRatePercent = ref(queueStore.arrivalRate * 100);
     const serviceRatePercent = ref(queueStore.serviceRate * 100);
-    
-    // Настройки приоритетов
+
+
     const prioritySettings = ref({
       highPriorityRate: 20,
       mediumPriorityRate: 30
     });
-    
-    // Настройки замкнутой системы
+
+
     const closedSettings = ref({
       totalCustomers: 10,
       returnTimeSeconds: 5
     });
-    
-    // Вычисляемые свойства
+
+
     const isRunning = computed(() => queueStore.isRunning);
-    
+
     const hasResults = computed(() => {
       return queueStore.statistics.totalCustomers > 0;
     });
@@ -275,32 +273,30 @@ export default {
       const lowRate = 100 - highRate - mediumRate;
       return lowRate < 0 ? 0 : lowRate;
     });
-    
+
     const systemLoad = computed(() => {
-      // Расчет нагрузки ρ = λ/(μ*m), где λ - интенсивность входящего потока,
-      // μ - интенсивность обслуживания, m - количество каналов обслуживания
       const lambda = arrivalRatePercent.value / 100;
       const mu = serviceRatePercent.value / 100;
       const m = servers.value;
-      
+
       return lambda / (mu * m);
     });
-    
-    // Методы управления серверами
+
+
     const incrementServers = () => {
       if (servers.value < 10) {
         servers.value++;
         updateStoreSettings();
       }
     };
-    
+
     const decrementServers = () => {
       if (servers.value > 1) {
         servers.value--;
         updateStoreSettings();
       }
     };
-    
+
     // Методы управления очередью
     const incrementQueue = () => {
       if (maxQueueLength.value < 50) {
@@ -308,44 +304,44 @@ export default {
         updateStoreSettings();
       }
     };
-    
+
     const decrementQueue = () => {
       if (maxQueueLength.value > 1) {
         maxQueueLength.value--;
         updateStoreSettings();
       }
     };
-    
-    // Методы управления замкнутой системой
+
+
     const incrementCustomers = () => {
       if (closedSettings.value.totalCustomers < 50) {
         closedSettings.value.totalCustomers++;
         updateTypeSettings();
       }
     };
-    
+
     const decrementCustomers = () => {
       if (closedSettings.value.totalCustomers > 1) {
         closedSettings.value.totalCustomers--;
         updateTypeSettings();
       }
     };
-    
+
     const incrementReturnTime = () => {
       if (closedSettings.value.returnTimeSeconds < 30) {
         closedSettings.value.returnTimeSeconds++;
         updateTypeSettings();
       }
     };
-    
+
     const decrementReturnTime = () => {
       if (closedSettings.value.returnTimeSeconds > 1) {
         closedSettings.value.returnTimeSeconds--;
         updateTypeSettings();
       }
     };
-    
-    // Выбор типа системы
+
+
     const systemTypes = [
       {
         id: 'standard',
@@ -372,36 +368,36 @@ export default {
         icon: '🔄'
       }
     ];
-    
+
     const selectSystemType = (typeId) => {
       if (isRunning.value) {
         notificationService.warning('Нельзя изменить тип системы во время симуляции', 3000);
         return;
       }
-      
+
       selectedSystemType.value = typeId;
       updateTypeSettings();
     };
-    
-    // Определение класса для отображения нагрузки системы
+
+
     const getLoadClass = (load) => {
       if (load < 0.7) return 'low-load';
       if (load < 1) return 'medium-load';
       return 'high-load';
     };
 
-    // Обновление настроек приоритета
+
     const updatePrioritySettings = () => {
-      // Проверяем, чтобы сумма высокого и среднего приоритета не превышала 100%
+
       const total = prioritySettings.value.highPriorityRate + prioritySettings.value.mediumPriorityRate;
       if (total > 100) {
-        // Если превышает, уменьшаем последнее измененное значение
+
         prioritySettings.value.mediumPriorityRate = 100 - prioritySettings.value.highPriorityRate;
       }
       updateTypeSettings();
     };
-    
-    // Обновление настроек хранилища
+
+
     const updateStoreSettings = () => {
       queueStore.servers = servers.value;
       queueStore.maxQueueLength = maxQueueLength.value;
@@ -409,10 +405,10 @@ export default {
       queueStore.serviceRate = serviceRatePercent.value / 100;
       queueStore.initialize();
     };
-    
+
     const updateTypeSettings = () => {
       let settings = {};
-      
+
       switch(selectedSystemType.value) {
         case 'priority':
           settings = {
@@ -428,29 +424,29 @@ export default {
           };
           break;
       }
-      
+
       queueStore.setSystemType(selectedSystemType.value, settings);
     };
-    
-    // Управление симуляцией
+
+
     const toggleSimulation = () => {
       if (!isRunning.value) {
-        // Проверка параметров перед запуском
+
         if (systemLoad.value > 1.5) {
           notificationService.warning('Система сильно перегружена! Рекомендуется увеличить количество серверов или скорость обслуживания.', 5000);
         }
-        
-        // Запуск обновления графиков
+
+
         chartStore.startUpdates();
         eventBus.emit(EVENTS.SIMULATION_STARTED);
       } else {
         chartStore.stopUpdates();
         eventBus.emit(EVENTS.SIMULATION_STOPPED);
       }
-      
+
       queueStore.toggleSimulation();
     };
-    
+
     const resetSimulation = () => {
       if (!isRunning.value) {
         queueStore.resetStatistics();
@@ -459,7 +455,7 @@ export default {
         notificationService.info('Симуляция сброшена', 2000);
       }
     };
-    
+
     const saveResults = async () => {
       if (!isRunning.value && hasResults.value) {
         try {
@@ -473,7 +469,7 @@ export default {
             },
             statistics: queueStore.statistics
           });
-          
+
           if (response) {
             notificationService.success('Результаты успешно сохранены');
           }
@@ -485,44 +481,44 @@ export default {
         notificationService.warning('Нет данных для сохранения');
       }
     };
-    
-    // Отслеживание изменений параметров для обновления хранилища
+
+
     watch(arrivalRatePercent, () => {
       if (!isRunning.value) {
         queueStore.arrivalRate = arrivalRatePercent.value / 100;
       }
     });
-    
+
     watch(serviceRatePercent, () => {
       if (!isRunning.value) {
         queueStore.serviceRate = serviceRatePercent.value / 100;
       }
     });
-    
-    // Загрузка настроек из хранилища при инициализации
+
+
     onMounted(() => {
-      // Инициализация настроек из хранилища
+
       if (queueStore.systemType === 'priority' && queueStore.systemSettings) {
         prioritySettings.value.highPriorityRate = Math.round(queueStore.systemSettings.highPriorityRate * 100) || 20;
         prioritySettings.value.mediumPriorityRate = Math.round(queueStore.systemSettings.mediumPriorityRate * 100) || 30;
       } else if (queueStore.systemType === 'closed' && queueStore.systemSettings) {
         closedSettings.value.totalCustomers = queueStore.systemSettings.totalCustomers || 10;
-        closedSettings.value.returnTimeSeconds = 
-          queueStore.systemSettings.customerReturnDelay 
-            ? Math.round(queueStore.systemSettings.customerReturnDelay / 1000) 
+        closedSettings.value.returnTimeSeconds =
+          queueStore.systemSettings.customerReturnDelay
+            ? Math.round(queueStore.systemSettings.customerReturnDelay / 1000)
             : 5;
       }
-      
-      // Установка слушателей событий
+
+
       eventBus.on(EVENTS.CUSTOMER_REJECTED, () => {
         if (isRunning.value) {
           notificationService.warning('Клиент отклонен: очередь заполнена', 2000);
         }
       });
-      
+
       updateStoreSettings();
     });
-    
+
     return {
       showInfo,
       selectedSystemType,
@@ -904,7 +900,7 @@ export default {
 }
 
 .control-button.stop:hover {
-  background-color: #dc3545;
+  background-color: #ffffff;
 }
 
 .control-button.reset {

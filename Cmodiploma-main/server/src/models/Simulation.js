@@ -16,7 +16,7 @@ const simulationSchema = new Schema({
         averageWaitTime: { type: Number, default: 0 },
         serverUtilization: { type: Number, default: 0 }
     },
-    // Добавляем поле для связи с пользователем
+
     user: {
         type: Schema.Types.ObjectId,
         ref: 'User'
@@ -25,16 +25,16 @@ const simulationSchema = new Schema({
     timestamps: true
 });
 
-// Индекс для сортировки по дате создания (часто используется)
+
 simulationSchema.index({ createdAt: -1 });
 
-// Составной индекс для поиска симуляций пользователя
+
 simulationSchema.index({ user: 1, createdAt: -1 });
 
-// Индекс для поиска по параметрам (если часто ищете симуляции с определенными параметрами)
+
 simulationSchema.index({ 'parameters.servers': 1, 'parameters.maxQueueLength': 1 });
 
-// Индекс для поиска по критериям эффективности (если делаете аналитические запросы)
+
 simulationSchema.index({ 'statistics.serverUtilization': -1 });
 
 module.exports = mongoose.model('Simulation', simulationSchema);

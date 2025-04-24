@@ -1,13 +1,12 @@
 <template>
   <div class="queue-system">
     <UI />
-    
+
     <div class="visualization">
-      <!-- Визуализация серверов -->
       <div class="servers-visualization">
         <h3>Каналы обслуживания</h3>
         <div class="servers-container">
-          <div v-for="(status, index) in serverStatus" 
+          <div v-for="(status, index) in serverStatus"
                :key="index"
                :class="['server-card', { 'is-busy': status }]">
             <div class="server-icon">
@@ -32,28 +31,28 @@
               </div>
             </div>
           </div>
-          
-          <!-- Показываем сообщение, если нет серверов -->
+
+
           <div v-if="serverStatus.length === 0" class="no-servers">
             Настройте количество серверов и запустите симуляцию
           </div>
         </div>
       </div>
 
-      <!-- Визуализация очереди -->
+
       <div class="queue-visualization">
         <div class="queue-header">
           <h3>Очередь запросов</h3>
           <div class="queue-counter">{{ queue.length }} / {{ maxQueueLength }}</div>
         </div>
-        
+
         <div class="queue-progress">
           <div class="queue-progress-bar" :style="{ width: `${(queue.length / maxQueueLength) * 100}%` }"></div>
         </div>
-        
+
         <div class="queue-container">
-          <div v-for="(client, index) in queue" 
-               :key="index" 
+          <div v-for="(client, index) in queue"
+               :key="index"
                :class="['client', { 'high-priority': client.priority === 'high', 'medium-priority': client.priority === 'medium', 'low-priority': client.priority === 'low' }]">
             <div class="client-icon">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -83,7 +82,7 @@
             <div class="stat-label">Всего клиентов</div>
           </div>
         </div>
-        
+
         <div class="stat-card">
           <div class="stat-icon">✅</div>
           <div class="stat-content">
@@ -91,7 +90,7 @@
             <div class="stat-label">Обслужено</div>
           </div>
         </div>
-        
+
         <div class="stat-card">
           <div class="stat-icon">❌</div>
           <div class="stat-content">
@@ -99,7 +98,7 @@
             <div class="stat-label">Отказов</div>
           </div>
         </div>
-        
+
         <div class="stat-card">
           <div class="stat-icon">⏱️</div>
           <div class="stat-content">
@@ -107,7 +106,7 @@
             <div class="stat-label">Среднее время ожидания</div>
           </div>
         </div>
-        
+
         <div class="stat-card">
           <div class="stat-icon">📊</div>
           <div class="stat-content">
@@ -130,7 +129,7 @@ import UI from './UI.vue'
 
 export default {
   name: 'QueueSystem',
-  
+
   components: {
     Charts,
     UI
@@ -143,14 +142,14 @@ export default {
     // Форматирование времени ожидания
     const formatTime = (milliseconds) => {
       if (!milliseconds) return '0.00 сек';
-      
+
       if (milliseconds < 1000) {
         return `${milliseconds.toFixed(0)} мс`;
       } else {
         return `${(milliseconds / 1000).toFixed(2)} сек`;
       }
     };
-    
+
     // Получение метки для приоритета
     const getPriorityLabel = (priority) => {
       switch(priority) {

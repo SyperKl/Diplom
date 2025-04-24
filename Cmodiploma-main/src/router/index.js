@@ -7,19 +7,19 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('../views/Home.vue'),
-      meta: { requiresAuth: true } // требуется авторизация
+      meta: { requiresAuth: true }
     },
     {
       path: '/simulation',
       name: 'simulation',
       component: () => import('../views/Simulation.vue'),
-      meta: { requiresAuth: true } // требуется авторизация
+      meta: { requiresAuth: true }
     },
     {
       path: '/statistics',
       name: 'statistics',
       component: () => import('../views/StatisticsView.vue'),
-      meta: { requiresAuth: true } // требуется авторизация
+      meta: { requiresAuth: true }
     },
     {
       path: '/login',
@@ -34,17 +34,17 @@ const router = createRouter({
   ]
 });
 
-// Защита маршрутов - активирована
+
 router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('token');
   console.log(`Навигация: ${from.path} -> ${to.path}, аутентифицирован: ${isAuthenticated}`);
 
-  // Если маршрут требует аутентификации и пользователь не аутентифицирован
+
   if (to.meta.requiresAuth && !isAuthenticated) {
     console.log('Доступ запрещен, перенаправление на страницу входа');
     next('/login');
   }
-  // Если пользователь аутентифицирован и пытается перейти на страницу входа/регистрации
+
   else if (isAuthenticated && (to.path === '/login' || to.path === '/register')) {
     console.log('Уже авторизован, перенаправление на главную');
     next('/');

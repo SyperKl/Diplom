@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
 
 module.exports = (req, res, next) => {
-    // Получение токена из заголовка
+
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -13,10 +13,10 @@ module.exports = (req, res, next) => {
     const token = authHeader.split(' ')[1];
 
     try {
-        // Верификация токена
+
         const decoded = jwt.verify(token, JWT_SECRET);
 
-        // Добавление пользователя в объект запроса
+
         req.user = decoded;
 
         next();

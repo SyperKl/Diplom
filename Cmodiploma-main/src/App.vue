@@ -51,8 +51,8 @@
     <footer class="main-footer">
       <div class="footer-content">
         <div class="footer-logo">
-          <img src="@/assets/logo.svg" alt="Logo" class="footer-logo-img" />
-          <span>QueueSim</span>
+          <img src="@/assets/lightning_mcqueen_angry_by_jtpa2k6_dher6x8-pre.png" alt="Logo" class="footer-logo-img" />
+          <span>Система массового обслуживания</span>
         </div>
 
         <div class="footer-links">
