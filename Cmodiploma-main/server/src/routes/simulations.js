@@ -1,17 +1,16 @@
-// routes/simulations.js
-import { Router } from 'express';
-const router = Router();
-import { getAllSimulations, getSimulationById, createSimulation, updateSimulation, deleteSimulation } from '../controllers/simulation';
-import auth from '../middleware/auth';
-import { basicLimiter, strictLimiter } from '../middleware/rateLimiter';
+const express = require('express');
+const router = express.Router();
+const SimulationController = require('../controllers/simulation');
+const auth = require('../middleware/auth');
+const { basicLimiter, strictLimiter } = require('../middleware/rateLimiter');
 
 // Публичные маршруты с базовым ограничением
-router.get('/', basicLimiter, getAllSimulations);
-router.get('/:id', basicLimiter, getSimulationById);
+router.get('/', basicLimiter, SimulationController.getAllSimulations);
+router.get('/:id', basicLimiter, SimulationController.getSimulationById);
 
 // Защищенные маршруты со строгим ограничением
-router.post('/', auth, strictLimiter, createSimulation);
-router.put('/:id', auth, strictLimiter, updateSimulation);
-router.delete('/:id', auth, strictLimiter, deleteSimulation);
+router.post('/', auth, strictLimiter, SimulationController.createSimulation);
+router.put('/:id', auth, strictLimiter, SimulationController.updateSimulation);
+router.delete('/:id', auth, strictLimiter, SimulationController.deleteSimulation);
 
-export default router;
+module.exports = router;

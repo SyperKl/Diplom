@@ -1,10 +1,8 @@
-// routes/auth.js
-import { Router } from 'express';
-const router = Router();
-import { register, login } from '../controllers/auth';
+const express = require('express');
+const router = express.Router();
+const authController = require('../controllers/auth');
 
-router.post('/register', register);
-router.post('/login', login);
+router.post('/register', authController.register);
+router.post('/login', authController.login);
 
-// eslint-disable-next-line no-undef
 module.exports = router;

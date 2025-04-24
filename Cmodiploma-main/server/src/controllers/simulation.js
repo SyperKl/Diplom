@@ -1,19 +1,19 @@
-import Simulation, { find, findById, findByIdAndUpdate, findByIdAndDelete } from '../models/Simulation';
+const Simulation = require('../models/Simulation');
 
 // Получение всех симуляций
-export async function getAllSimulations(req, res) {
+exports.getAllSimulations = async (req, res) => {
     try {
-        const simulations = await find();
+        const simulations = await Simulation.find();
         res.json(simulations);
     } catch (err) {
         res.status(400).json('Error: ' + err);
     }
-}
+};
 
 // Получение одной симуляции по ID
-export async function getSimulationById(req, res) {
+exports.getSimulationById = async (req, res) => {
     try {
-        const simulation = await findById(req.params.id);
+        const simulation = await Simulation.findById(req.params.id);
 
         if (!simulation) {
             return res.status(404).json({ message: 'Симуляция не найдена' });
@@ -23,10 +23,10 @@ export async function getSimulationById(req, res) {
     } catch (err) {
         res.status(400).json('Error: ' + err);
     }
-}
+};
 
 // Создание новой симуляции
-export async function createSimulation(req, res) {
+exports.createSimulation = async (req, res) => {
     try {
         const newSimulation = new Simulation({
             parameters: req.body.parameters,
@@ -38,12 +38,12 @@ export async function createSimulation(req, res) {
     } catch (err) {
         res.status(400).json('Error: ' + err);
     }
-}
+};
 
 // Обновление симуляции
-export async function updateSimulation(req, res) {
+exports.updateSimulation = async (req, res) => {
     try {
-        const simulation = await findByIdAndUpdate(
+        const simulation = await Simulation.findByIdAndUpdate(
             req.params.id,
             req.body,
             { new: true, runValidators: true }
@@ -57,12 +57,12 @@ export async function updateSimulation(req, res) {
     } catch (err) {
         res.status(400).json('Error: ' + err);
     }
-}
+};
 
 // Удаление симуляции
-export async function deleteSimulation(req, res) {
+exports.deleteSimulation = async (req, res) => {
     try {
-        const simulation = await findByIdAndDelete(req.params.id);
+        const simulation = await Simulation.findByIdAndDelete(req.params.id);
 
         if (!simulation) {
             return res.status(404).json({ message: 'Симуляция не найдена' });
@@ -72,4 +72,4 @@ export async function deleteSimulation(req, res) {
     } catch (err) {
         res.status(400).json('Error: ' + err);
     }
-}
+};
