@@ -9,8 +9,6 @@
     "ecmaVersion": 2021
   },
   "rules": {
-    "no-undef": "off",
-    "no-unused-vars": "warn"
   },
   "globals": {
     "require": "readonly",

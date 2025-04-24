@@ -1,6 +1,6 @@
-// models/Simulation.js
-import { Schema as _Schema, model } from 'mongoose';
-const Schema = _Schema;
+
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
 const simulationSchema = new Schema({
     parameters: {
@@ -37,4 +37,4 @@ simulationSchema.index({ 'parameters.servers': 1, 'parameters.maxQueueLength': 1
 // Индекс для поиска по критериям эффективности (если делаете аналитические запросы)
 simulationSchema.index({ 'statistics.serverUtilization': -1 });
 
-export default model('Simulation', simulationSchema);
+module.exports = mongoose.model('Simulation', simulationSchema);
