@@ -25,8 +25,14 @@
           </router-link>
         </div>
         <div class="auth-buttons">
-  <router-link to="/login" class="button login-btn">Войти</router-link>
-  <router-link to="/register" class="button register-btn">Регистрация</router-link>
+  <template v-if="isAuthenticated">
+    <span class="welcome-text">Привет, {{ username || 'пользователь' }}!</span>
+    <button @click="logout" class="auth-button logout-btn">Выйти</button>
+  </template>
+  <template v-else>
+    <router-link to="/login" class="auth-button login-btn">Войти</router-link>
+    <router-link to="/register" class="auth-button register-btn">Регистрация</router-link>
+  </template>
 </div>
 
         <button @click="toggleDarkMode" class="theme-toggle" :title="isDarkMode ? 'Переключить на светлую тему' : 'Переключить на темную тему'">
@@ -70,12 +76,46 @@ import { ref, computed, onMounted } from 'vue'
 import { EVENTS } from '@/constants'
 import eventBus from '@/utils/eventBus'
 import notificationService from '@/services/notifications'
+import { useRouter } from 'vue-router';
 
 export default {
   name: 'App',
   setup() {
     const isDarkMode = ref(false);
     const currentYear = computed(() => new Date().getFullYear());
+    const isAuthenticated = ref(false);
+    const username = ref('');
+    const router = useRouter();
+        const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      console.log('Проверка аутентификации, токен:', token ? 'присутствует' : 'отсутствует');
+
+      if (token) {
+        isAuthenticated.value = true;
+        // Можно добавить проверку токена на сервере
+        return true;
+      }
+
+      isAuthenticated.value = false;
+      return false;
+    };
+
+    // Функция выхода
+    const logout = () => {
+      localStorage.removeItem('token');
+      isAuthenticated.value = false;
+      username.value = '';
+      router.push('/login');
+    };
+
+    onMounted(() => {
+      checkAuth();
+    });
+
+
+
+
+
 
     const toggleDarkMode = () => {
       isDarkMode.value = !isDarkMode.value;
@@ -115,7 +155,11 @@ export default {
     return {
       isDarkMode,
       toggleDarkMode,
-      currentYear
+      currentYear,
+      isAuthenticated,
+      username,
+      logout,
+      checkAuth
     };
   }
 }
