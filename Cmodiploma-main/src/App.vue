@@ -2,14 +2,14 @@
   <div :class="['app-container', { 'dark-mode': isDarkMode }]">
     <!-- Добавляем компонент уведомлений -->
     <Notifications />
-    
+
     <nav class="main-nav">
       <div class="nav-container">
         <div class="logo">
-          
+
           <span>СМО</span>
         </div>
-        
+
         <div class="nav-links">
           <router-link to="/" class="nav-link">
             <span class="link-icon">🏠</span>
@@ -24,13 +24,17 @@
             <span class="link-text">Статистика</span>
           </router-link>
         </div>
-        
+        <div class="auth-buttons">
+  <router-link to="/login" class="button login-btn">Войти</router-link>
+  <router-link to="/register" class="button register-btn">Регистрация</router-link>
+</div>
+
         <button @click="toggleDarkMode" class="theme-toggle" :title="isDarkMode ? 'Переключить на светлую тему' : 'Переключить на темную тему'">
           <span class="mode-icon">{{ isDarkMode ? '☀️' : '🌙' }}</span>
         </button>
       </div>
     </nav>
-    
+
     <main class="main-content">
       <router-view v-slot="{ Component }">
         <transition name="page" mode="out-in">
@@ -38,20 +42,20 @@
         </transition>
       </router-view>
     </main>
-    
+
     <footer class="main-footer">
       <div class="footer-content">
         <div class="footer-logo">
           <img src="@/assets/logo.svg" alt="Logo" class="footer-logo-img" />
           <span>QueueSim</span>
         </div>
-        
+
         <div class="footer-links">
           <router-link to="/">Главная</router-link>
           <router-link to="/simulation">Симуляция</router-link>
           <router-link to="/statistics">Статистика</router-link>
         </div>
-        
+
         <div class="footer-info">
           <p>Система моделирования СМО © {{ currentYear }}</p>
           <p class="version">Версия 1.1.0</p>
@@ -72,27 +76,27 @@ export default {
   setup() {
     const isDarkMode = ref(false);
     const currentYear = computed(() => new Date().getFullYear());
-    
+
     const toggleDarkMode = () => {
       isDarkMode.value = !isDarkMode.value;
       localStorage.setItem('darkMode', isDarkMode.value);
       document.documentElement.classList.toggle('dark-theme', isDarkMode.value);
     };
-    
+
     const setupEventListeners = () => {
       eventBus.on(EVENTS.SIMULATION_STARTED, () => {
         notificationService.info('Симуляция запущена');
       });
-      
+
       eventBus.on(EVENTS.SIMULATION_STOPPED, () => {
         notificationService.info('Симуляция остановлена');
       });
-      
+
       eventBus.on(EVENTS.CUSTOMER_REJECTED, () => {
         notificationService.warning('Клиент отклонен: очередь заполнена', 3000);
       });
     };
-    
+
     onMounted(() => {
       const savedMode = localStorage.getItem('darkMode');
       if (savedMode !== null) {
@@ -103,11 +107,11 @@ export default {
         isDarkMode.value = prefersDark;
         document.documentElement.classList.toggle('dark-theme', prefersDark);
       }
-      
+
       setupEventListeners();
       notificationService.success('Приложение успешно загружено');
     });
-    
+
     return {
       isDarkMode,
       toggleDarkMode,
@@ -132,26 +136,26 @@ export default {
   --border-color: #eaeaea;
   --shadow-color: rgba(0, 0, 0, 0.08);
   --shadow-hover: rgba(0, 0, 0, 0.15);
-  
+
   /* Spacing */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 1rem;
   --space-lg: 1.5rem;
   --space-xl: 2rem;
-  
+
   /* Border radius */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 16px;
   --radius-xl: 24px;
   --radius-full: 9999px;
-  
+
   /* Transitions */
   --transition-fast: 0.2s;
   --transition-normal: 0.3s;
   --transition-slow: 0.5s;
-  
+
   /* Shadows */
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
@@ -464,19 +468,19 @@ body {
     flex-wrap: wrap;
     gap: 15px;
   }
-  
+
   .nav-links {
     order: 3;
     width: 100%;
     justify-content: space-around;
     margin-top: 15px;
   }
-  
+
   .footer-content {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .footer-info {
     text-align: center;
   }
@@ -486,19 +490,19 @@ body {
   .link-text {
     display: none;
   }
-  
+
   .nav-link {
     padding: 10px;
   }
-  
+
   .link-icon {
     font-size: 1.3rem;
   }
-  
+
   .logo {
     font-size: 1.2rem;
   }
-  
+
   .footer-links {
     flex-direction: column;
     gap: 10px;

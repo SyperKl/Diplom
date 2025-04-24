@@ -16,7 +16,18 @@ const router = createRouter({
     {
       path: '/statistics',
       name: 'statistics',
-      component: () => import('../views/StatisticsView.vue')  // убедитесь что путь правильный
+      component: () => import('../views/StatisticsView.vue')
+    },
+    // Добавьте эти два новых маршрута
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/Login.vue')
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: () => import('../views/Register.vue')
     }
   ]
 });
