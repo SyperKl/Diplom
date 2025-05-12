@@ -54,7 +54,7 @@
 ### Frontend
 ```bash
 # Клонировать репозиторий
-git clone https://github.com/yourusername/Cmodiploma.git
+git clone https://github.com/SyperKI/Cmodiploma.git
 cd Cmodiploma
 
 # Установить зависимости
