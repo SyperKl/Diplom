@@ -895,12 +895,12 @@ export default {
 }
 
 .control-button.stop {
-  background: var(--error-color);
+  background: #7c3aed;
   color: white;
 }
 
 .control-button.stop:hover {
-  background-color: #ffffff;
+  background-color: #d03939;
 }
 
 .control-button.reset {
